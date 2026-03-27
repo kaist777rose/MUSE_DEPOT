@@ -512,11 +512,12 @@ body{
           <option value="duration-asc">짧은 순</option>
           <option value="liked-desc">좋아요 순</option>
         </select>
-        <label class="upload-btn" style="cursor:pointer;">
+        <label class="upload-btn" style="cursor:pointer;overflow:hidden;position:relative;">
           ＋ 음악 추가
           <input type="file" id="fileInput" accept="audio/*" multiple
             onchange="handleFileInput(event)"
-            style="position:absolute;width:0;height:0;opacity:0;overflow:hidden;">
+            style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.01;cursor:pointer;font-size:16px;">
+        </label>
         </label>
       </div>
     </div>
