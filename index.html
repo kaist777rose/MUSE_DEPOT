@@ -573,11 +573,6 @@ body{
   <div class="ctx-item danger" onclick="ctx_del()">🗑 삭제</div>
 </div>
 
-<!-- 파일 input: body 최상위 배치 (iOS Safari 호환) -->
-<input type="file" id="fileInput" accept="audio/*" multiple
-  style="position:fixed;top:-9999px;left:-9999px;opacity:0;width:1px;height:1px;"
-  onchange="handleFileInput(event)">
-
 <!-- ─── UPLOAD MODAL ─── -->
 <div class="modal-overlay" id="uploadModal">
   <div class="modal">
@@ -588,12 +583,11 @@ body{
     <div style="text-align:center;padding:1.2rem 0;">
       <div style="font-size:2.5rem;margin-bottom:1rem;">🎵</div>
       <p style="font-size:0.9rem;font-weight:800;color:var(--text2);margin-bottom:1.2rem;">MP3, WAV, M4A 등 오디오 파일</p>
-      <button id="pickFileBtn"
-        style="background:var(--accent3);border:none;color:#fff;padding:0.9rem 2rem;
-        border-radius:10px;font-size:1rem;font-weight:900;font-family:'DM Sans',sans-serif;
-        cursor:pointer;width:100%;letter-spacing:0.5px;">
-        📂 파일 선택하기
-      </button>
+      <label style="display:block;position:relative;background:var(--accent3);border-radius:10px;padding:0.9rem 2rem;cursor:pointer;width:100%;">
+        <span style="color:#fff;font-size:1rem;font-weight:900;font-family:'DM Sans',sans-serif;pointer-events:none;">📂 파일 선택하기</span>
+        <input type="file" id="fileInput" accept="audio/*" multiple onchange="handleFileInput(event)"
+          style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0;">
+      </label>
       <p style="font-size:0.75rem;font-weight:700;color:var(--text3);margin-top:0.8rem;">여러 파일 동시 선택 가능</p>
     </div>
   </div>
@@ -910,11 +904,6 @@ document.addEventListener('keydown',e=>{
 });
 
 hydrate();setViewMode(S.cfg.viewMode);document.getElementById('volFill').style.width=(S.cfg.vol*100)+'%';audio.volume=S.cfg.vol;renderContent();updatePlayerUI();
-
-// 파일 선택 버튼 이벤트 (DOMContentLoaded 내부에서 직접 연결)
-document.getElementById('pickFileBtn').addEventListener('click', function(){
-  document.getElementById('fileInput').click();
-});
 
 // HTML onclick에서 접근 가능하도록 전역 노출
 window.setView=setView;window.setViewMode=setViewMode;window.onSort=onSort;
