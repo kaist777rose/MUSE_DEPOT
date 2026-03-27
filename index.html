@@ -512,7 +512,12 @@ body{
           <option value="duration-asc">짧은 순</option>
           <option value="liked-desc">좋아요 순</option>
         </select>
-        <button class="upload-btn" onclick="openModal('uploadModal')">＋ 음악 추가</button>
+        <label class="upload-btn" style="cursor:pointer;">
+          ＋ 음악 추가
+          <input type="file" id="fileInput" accept="audio/*" multiple
+            onchange="handleFileInput(event)"
+            style="position:absolute;width:0;height:0;opacity:0;overflow:hidden;">
+        </label>
       </div>
     </div>
 
@@ -571,26 +576,6 @@ body{
   <div class="ctx-item" onclick="ctx_addPl()">＋ 플레이리스트 추가</div>
   <hr class="ctx-div">
   <div class="ctx-item danger" onclick="ctx_del()">🗑 삭제</div>
-</div>
-
-<!-- ─── UPLOAD MODAL ─── -->
-<div class="modal-overlay" id="uploadModal">
-  <div class="modal">
-    <div class="modal-hd">
-      <div class="modal-title">음악 추가</div>
-      <button class="modal-x" onclick="closeModal('uploadModal')">×</button>
-    </div>
-    <div style="text-align:center;padding:1.2rem 0;">
-      <div style="font-size:2.5rem;margin-bottom:1rem;">🎵</div>
-      <p style="font-size:0.9rem;font-weight:800;color:var(--text2);margin-bottom:1.2rem;">MP3, WAV, M4A 등 오디오 파일</p>
-      <label style="display:block;position:relative;background:var(--accent3);border-radius:10px;padding:0.9rem 2rem;cursor:pointer;width:100%;">
-        <span style="color:#fff;font-size:1rem;font-weight:900;font-family:'DM Sans',sans-serif;pointer-events:none;">📂 파일 선택하기</span>
-        <input type="file" id="fileInput" accept="audio/*" multiple onchange="handleFileInput(event)"
-          style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;font-size:0;">
-      </label>
-      <p style="font-size:0.75rem;font-weight:700;color:var(--text3);margin-top:0.8rem;">여러 파일 동시 선택 가능</p>
-    </div>
-  </div>
 </div>
 
 <!-- ─── EDIT MODAL ─── -->
@@ -822,7 +807,7 @@ function updatePlayerUI(){
   if(s){document.getElementById('pTitle').textContent=s.title||'제목 없음';document.getElementById('pArtist').textContent=s.artist||'—';const h=document.getElementById('pHeart');h.textContent=s.liked?'♥':'♡';h.classList.toggle('liked',!!s.liked);const th=document.getElementById('pThumb');th.innerHTML=s.thumbnail?`<img src="${esc(s.thumbnail)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">`:'♪';}
 }
 
-function handleFileInput(e){processFiles(Array.from(e.target.files));closeModal('uploadModal');}
+function handleFileInput(e){processFiles(Array.from(e.target.files));e.target.value='';}
 function processFiles(files){
   const af=files.filter(f=>f.type.startsWith('audio/')||f.name.match(/\.(mp3|wav|m4a|ogg|flac)$/i));
   if(!af.length){notify('오디오 파일이 없습니다.');return;}
