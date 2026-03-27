@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MUSE_DEPOT</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#f5f2eb">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:ital,wght@0,600;0,700;0,800;1,700&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f5f2eb;
+  --surface: #fffdf8;
+  --surface2: #ede9df;
+  --surface3: #e2ddd3;
+  --border: rgba(0,0,0,0.09);
+  --border2: rgba(0,0,0,0.16);
+  --accent: #1a6fff;
+  --accent2: #e8005a;
+  --accent3: #7c3aed;
+  --green: #0a8a5c;
+  --text: #111118;
+  --text2: #2a2a3a;
+  --text3: #666680;
+  --sidebar-w: 220px;
+  --player-h: 88px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{height:100%;overflow:hidden;}
+body{
+  font-family:'DM Sans',sans-serif;
+  font-weight:700;
+  background:var(--bg);
+  color:var(--text);
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+}
+
+/* ─── LAYOUT ─── */
+.app{display:flex;flex:1;overflow:hidden;min-height:0;}
+
+/* ─── SIDEBAR ─── */
+.sidebar{
+  width:var(--sidebar-w);
+  background:var(--surface);
+  border-right:2px solid var(--border2);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  flex-shrink:0;
+}
+.logo{
+  font-family:'Syne',sans-serif;
+  font-size:1.35rem;
+  font-weight:800;
+  letter-spacing:2px;
+  padding:1.3rem 1.1rem 0.9rem;
+  color:var(--accent3);
+  flex-shrink:0;
+  border-bottom:2px solid var(--border);
+}
+.logo span{
+  font-size:0.58rem;display:block;letter-spacing:4px;
+  color:var(--text3);font-weight:800;margin-top:2px;
+  text-transform:uppercase;
+}
+.sidebar-body{flex:1;overflow-y:auto;overflow-x:hidden;padding-bottom:1rem;}
+.sidebar-body::-webkit-scrollbar{width:3px;}
+.sidebar-body::-webkit-scrollbar-thumb{background:var(--surface3);}
+.s-label{
+  font-size:0.6rem;font-weight:900;letter-spacing:2.5px;
+  text-transform:uppercase;color:var(--text3);
+  padding:0.9rem 1.1rem 0.35rem;
+}
+.s-item{
+  display:flex;align-items:center;gap:0.65rem;
+  padding:0.52rem 1.1rem;cursor:pointer;
+  font-size:0.85rem;font-weight:800;color:var(--text2);
+  transition:all 0.15s;position:relative;
+  border-left:3px solid transparent;
+}
+.s-item:hover{background:var(--surface2);color:var(--text);}
+.s-item.active{
+  background:rgba(124,58,237,0.08);
+  color:var(--accent3);
+  border-left-color:var(--accent3);
+}
+.s-icon{font-size:0.95rem;width:17px;text-align:center;flex-shrink:0;}
+.s-count{
+  margin-left:auto;font-family:'JetBrains Mono',monospace;
+  font-size:0.65rem;font-weight:700;color:var(--text3);
+  background:var(--surface2);padding:0.1rem 0.4rem;border-radius:4px;
+  border:1px solid var(--border);
+}
+.s-divider{border:none;border-top:2px solid var(--border);margin:0.35rem 0;}
+.pl-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0.7rem 1.1rem 0.25rem;
+}
+.pl-add{
+  background:none;border:2px solid var(--border2);color:var(--text3);
+  width:20px;height:20px;border-radius:5px;cursor:pointer;
+  font-size:0.9rem;display:flex;align-items:center;justify-content:center;
+  transition:all 0.2s;font-weight:900;
+}
+.pl-add:hover{border-color:var(--accent3);color:var(--accent3);}
+.pl-item{
+  display:flex;align-items:center;gap:0.55rem;
+  padding:0.44rem 1.1rem;cursor:pointer;
+  font-size:0.82rem;font-weight:800;color:var(--text2);
+  transition:all 0.15s;border-left:3px solid transparent;
+}
+.pl-item:hover{background:var(--surface2);color:var(--text);}
+.pl-item.active{color:var(--accent3);border-left-color:var(--accent3);}
+.pl-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+
+/* ─── MAIN ─── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+
+/* toolbar */
+.toolbar{
+  display:flex;align-items:center;gap:0.8rem;
+  padding:0.8rem 1.3rem;
+  border-bottom:2px solid var(--border2);
+  background:var(--surface);flex-shrink:0;
+}
+.view-title{
+  font-family:'Syne',sans-serif;font-size:1.15rem;font-weight:800;
+  white-space:nowrap;color:var(--text);letter-spacing:0.5px;
+}
+.search-wrap{flex:1;position:relative;max-width:280px;}
+.search-wrap input{
+  width:100%;background:var(--bg);border:2px solid var(--border2);
+  border-radius:8px;padding:0.48rem 0.75rem 0.48rem 2rem;
+  color:var(--text);font-size:0.83rem;font-family:'DM Sans',sans-serif;
+  font-weight:700;transition:border-color 0.2s;
+}
+.search-wrap input:focus{outline:none;border-color:var(--accent3);}
+.search-wrap input::placeholder{color:var(--text3);font-weight:700;}
+.search-ico{position:absolute;left:0.65rem;top:50%;transform:translateY(-50%);font-size:0.75rem;color:var(--text3);}
+.tb-right{display:flex;align-items:center;gap:0.5rem;margin-left:auto;}
+.vbtn{
+  background:var(--bg);border:2px solid var(--border2);color:var(--text2);
+  padding:0.4rem 0.65rem;border-radius:7px;cursor:pointer;font-size:0.85rem;
+  font-weight:800;transition:all 0.2s;
+}
+.vbtn.active,.vbtn:hover{background:var(--surface2);border-color:var(--accent3);color:var(--accent3);}
+.sort-sel{
+  background:var(--bg);border:2px solid var(--border2);color:var(--text2);
+  padding:0.4rem 0.6rem;border-radius:7px;
+  font-family:'DM Sans',sans-serif;font-size:0.78rem;font-weight:800;cursor:pointer;
+}
+.sort-sel option{background:var(--surface);}
+.upload-btn{
+  background:var(--accent3);border:none;color:#fff;
+  padding:0.44rem 0.95rem;border-radius:8px;cursor:pointer;
+  font-size:0.83rem;font-weight:900;font-family:'DM Sans',sans-serif;
+  display:flex;align-items:center;gap:0.35rem;transition:all 0.2s;letter-spacing:0.3px;
+}
+.upload-btn:hover{opacity:0.85;transform:translateY(-1px);}
+
+/* stats */
+.stats-bar{
+  display:flex;gap:1.5rem;padding:0.48rem 1.3rem;
+  border-bottom:2px solid var(--border);background:var(--surface2);
+  flex-shrink:0;
+}
+.stat{display:flex;align-items:center;gap:0.35rem;font-size:0.73rem;font-weight:800;color:var(--text3);}
+.stat-v{font-family:'JetBrains Mono',monospace;color:var(--text2);font-size:0.75rem;font-weight:700;}
+
+/* content */
+.content-area{flex:1;overflow-y:auto;overflow-x:hidden;min-height:0;background:var(--bg);}
+.content-area::-webkit-scrollbar{width:5px;}
+.content-area::-webkit-scrollbar-track{background:var(--bg);}
+.content-area::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px;}
+
+/* ─── LIST VIEW ─── */
+.list-header{
+  display:grid;
+  grid-template-columns: 36px 44px 1fr 140px 90px 110px 60px 50px 34px;
+  align-items:center;padding:0.45rem 1.3rem;
+  border-bottom:2px solid var(--border2);
+  background:var(--surface);position:sticky;top:0;z-index:10;
+}
+.ch{
+  font-size:0.62rem;font-weight:900;letter-spacing:1.5px;
+  text-transform:uppercase;color:var(--text3);cursor:pointer;
+  padding:0.2rem 0.25rem;border-radius:4px;transition:color 0.2s;
+  display:flex;align-items:center;gap:0.2rem;user-select:none;
+}
+.ch:hover{color:var(--accent3);}
+.ch.sorted{color:var(--accent3);}
+.song-row{
+  display:grid;
+  grid-template-columns: 36px 44px 1fr 140px 90px 110px 60px 50px 34px;
+  align-items:center;padding:0 1.3rem;
+  height:52px;border-bottom:1px solid var(--border);
+  cursor:pointer;transition:background 0.1s;
+}
+.song-row:hover{background:var(--surface);}
+.song-row.playing{background:rgba(124,58,237,0.06);}
+.song-row.playing .row-title{color:var(--accent3);font-weight:900;}
+.rn{font-family:'JetBrains Mono',monospace;font-size:0.73rem;font-weight:700;color:var(--text3);text-align:center;}
+.song-row.playing .rn{color:var(--accent3);}
+.rthumb{
+  width:36px;height:36px;border-radius:6px;
+  background:var(--surface3);display:flex;align-items:center;
+  justify-content:center;font-size:0.95rem;overflow:hidden;border:1px solid var(--border);
+}
+.rthumb img{width:100%;height:100%;object-fit:cover;}
+.rinfo{overflow:hidden;padding:0 0.65rem;}
+.row-title{font-size:0.9rem;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
+.row-artist{font-size:0.75rem;font-weight:700;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ppill{
+  display:inline-block;padding:0.18rem 0.55rem;
+  border-radius:5px;font-size:0.65rem;font-weight:900;letter-spacing:0.5px;
+}
+.pp-suno{background:rgba(26,111,255,0.12);color:var(--accent);border:1px solid rgba(26,111,255,0.25);}
+.pp-udio{background:rgba(232,0,90,0.1);color:var(--accent2);border:1px solid rgba(232,0,90,0.22);}
+.pp-other{background:rgba(124,58,237,0.1);color:var(--accent3);border:1px solid rgba(124,58,237,0.22);}
+.row-genre{font-size:0.76rem;font-weight:800;color:var(--text2);padding:0 0.4rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.row-tags{display:flex;gap:0.22rem;overflow:hidden;padding:0 0.2rem;}
+.rtag{font-size:0.62rem;font-weight:800;padding:0.12rem 0.38rem;background:var(--surface3);border-radius:4px;color:var(--text2);white-space:nowrap;border:1px solid var(--border);}
+.row-dur{font-family:'JetBrains Mono',monospace;font-size:0.76rem;font-weight:700;color:var(--text3);text-align:right;padding-right:0.4rem;}
+.row-plays{font-family:'JetBrains Mono',monospace;font-size:0.74rem;font-weight:700;color:var(--text3);text-align:center;}
+.row-like{text-align:center;font-size:1rem;color:var(--text3);cursor:pointer;transition:color 0.2s;}
+.row-like:hover,.row-like.liked{color:var(--accent2);}
+
+/* ─── GRID VIEW ─── */
+.grid-wrap{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(168px,1fr));
+  gap:1rem;padding:1.2rem;
+}
+.g-card{
+  background:var(--surface);border:2px solid var(--border);
+  border-radius:12px;overflow:hidden;cursor:pointer;
+  transition:all 0.22s;
+}
+.g-card:hover{border-color:var(--border2);transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,0.12);}
+.g-card.playing{border-color:var(--accent3);box-shadow:0 0 0 3px rgba(124,58,237,0.15);}
+.g-thumb{
+  width:100%;aspect-ratio:1;background:var(--surface3);
+  display:flex;align-items:center;justify-content:center;
+  font-size:2.4rem;position:relative;overflow:hidden;
+}
+.g-thumb img{position:absolute;width:100%;height:100%;object-fit:cover;}
+.g-overlay{
+  position:absolute;inset:0;background:rgba(0,0,0,0.45);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity 0.2s;
+}
+.g-card:hover .g-overlay{opacity:1;}
+.g-play{
+  width:46px;height:46px;border-radius:50%;background:var(--accent3);
+  display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.1rem;
+}
+.g-info{padding:0.75rem 0.85rem;}
+.g-title{font-size:0.84rem;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
+.g-artist{font-size:0.73rem;font-weight:700;color:var(--text2);margin-top:0.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.g-foot{display:flex;justify-content:space-between;align-items:center;margin-top:0.5rem;}
+.g-plays{font-family:'JetBrains Mono',monospace;font-size:0.63rem;font-weight:700;color:var(--text3);}
+
+/* empty */
+.empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100%;gap:0.8rem;padding:3rem;text-align:center;
+}
+.empty-ico{font-size:3rem;opacity:0.3;}
+.empty-h{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--text2);}
+.empty-s{font-size:0.84rem;font-weight:700;color:var(--text3);max-width:260px;line-height:1.65;}
+
+/* ─── DRAG OVERLAY ─── */
+.drag-overlay{
+  position:fixed;inset:0;background:rgba(124,58,237,0.07);
+  border:3px dashed var(--accent3);z-index:999;
+  display:none;align-items:center;justify-content:center;
+  flex-direction:column;gap:0.8rem;backdrop-filter:blur(4px);
+}
+.drag-overlay.active{display:flex;}
+.drag-ico{font-size:3.5rem;}
+.drag-txt{font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;color:var(--accent3);}
+
+/* ─── PLAYER BAR ─── */
+.player-bar{
+  height:var(--player-h);background:var(--surface);
+  border-top:2px solid var(--border2);
+  display:flex;align-items:center;padding:0 1.4rem;gap:1.2rem;
+  flex-shrink:0;
+}
+.p-left{display:flex;align-items:center;gap:0.75rem;width:240px;flex-shrink:0;}
+.p-thumb{
+  width:52px;height:52px;border-radius:8px;
+  background:var(--surface3);display:flex;align-items:center;
+  justify-content:center;font-size:1.5rem;overflow:hidden;flex-shrink:0;
+  border:2px solid var(--border);
+}
+.p-thumb img{width:100%;height:100%;object-fit:cover;}
+.p-info{overflow:hidden;flex:1;}
+.p-title{font-size:0.9rem;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
+.p-artist{font-size:0.75rem;font-weight:700;color:var(--text3);}
+.p-heart{background:none;border:none;color:var(--text3);cursor:pointer;font-size:1.05rem;padding:0.25rem;transition:color 0.2s;flex-shrink:0;}
+.p-heart:hover,.p-heart.liked{color:var(--accent2);}
+.p-center{flex:1;display:flex;flex-direction:column;align-items:center;gap:0.42rem;}
+.p-controls{display:flex;align-items:center;gap:0.9rem;}
+.cbtn{
+  background:none;border:none;color:var(--text3);cursor:pointer;
+  font-size:1rem;padding:0.25rem;transition:all 0.2s;border-radius:50%;font-weight:900;
+}
+.cbtn:hover{color:var(--text);}
+.cbtn.active{color:var(--accent3);}
+.pp-btn{
+  width:38px;height:38px;border-radius:50%;background:var(--text);
+  border:none;color:#fff;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;font-size:1rem;transition:all 0.2s;font-weight:900;
+}
+.pp-btn:hover{transform:scale(1.1);background:var(--accent3);}
+.prog-area{display:flex;align-items:center;gap:0.6rem;width:100%;max-width:480px;}
+.tl{font-family:'JetBrains Mono',monospace;font-size:0.7rem;font-weight:700;color:var(--text3);width:36px;flex-shrink:0;}
+.tl.right{text-align:right;}
+.prog-wrap{flex:1;height:4px;background:var(--surface3);border-radius:2px;cursor:pointer;position:relative;}
+.prog-fill{height:100%;background:var(--accent3);border-radius:2px;pointer-events:none;width:0%;transition:width 0.1s linear;}
+.p-right{display:flex;align-items:center;gap:0.6rem;width:190px;justify-content:flex-end;flex-shrink:0;}
+.vol-wrap{display:flex;align-items:center;gap:0.45rem;}
+.vol-ico{font-size:0.85rem;color:var(--text3);cursor:pointer;}
+.vol-bar{width:72px;height:4px;background:var(--surface3);border-radius:2px;cursor:pointer;position:relative;}
+.vol-fill{height:100%;background:var(--text2);border-radius:2px;pointer-events:none;width:80%;}
+
+/* ─── CONTEXT MENU ─── */
+.ctx{
+  position:fixed;background:var(--surface);border:2px solid var(--border2);
+  border-radius:11px;padding:0.35rem 0;z-index:600;min-width:178px;
+  box-shadow:0 8px 28px rgba(0,0,0,0.15);display:none;
+}
+.ctx.active{display:block;}
+.ctx-item{
+  display:flex;align-items:center;gap:0.6rem;
+  padding:0.5rem 0.9rem;cursor:pointer;font-size:0.83rem;font-weight:800;color:var(--text2);
+  transition:all 0.12s;
+}
+.ctx-item:hover{background:var(--surface2);color:var(--text);}
+.ctx-item.danger:hover{color:var(--accent2);}
+.ctx-div{border:none;border-top:1px solid var(--border);margin:0.25rem 0;}
+
+/* ─── MODALS ─── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,0.4);backdrop-filter:blur(6px);
+  z-index:500;display:none;align-items:center;justify-content:center;padding:1.5rem;
+}
+.modal-overlay.active{display:flex;}
+.modal{
+  background:var(--surface);border:2px solid var(--border2);
+  border-radius:16px;padding:1.9rem;width:100%;max-width:540px;
+  max-height:85vh;overflow-y:auto;
+  box-shadow:0 16px 50px rgba(0,0,0,0.2);
+}
+.modal::-webkit-scrollbar{width:4px;}
+.modal::-webkit-scrollbar-thumb{background:var(--surface3);}
+.modal-hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:1.4rem;}
+.modal-title{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:var(--text);}
+.modal-x{
+  background:var(--surface2);border:2px solid var(--border2);color:var(--text2);
+  width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:0.9rem;
+  display:flex;align-items:center;justify-content:center;transition:all 0.2s;font-weight:900;
+}
+.modal-x:hover{color:var(--text);border-color:var(--text3);}
+.drop-zone{
+  border:3px dashed var(--border2);border-radius:12px;
+  padding:2.5rem 1.5rem;text-align:center;cursor:pointer;transition:all 0.2s;
+}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent3);background:rgba(124,58,237,0.04);}
+.drop-ico{font-size:2.6rem;margin-bottom:0.7rem;}
+.drop-txt{font-size:0.97rem;font-weight:800;margin-bottom:0.3rem;color:var(--text);}
+.drop-sub{font-size:0.76rem;font-weight:700;color:var(--text3);}
+/* file inputs hidden via inline style */
+
+/* form */
+.fg{margin-bottom:1rem;}
+.flabel{
+  display:block;font-size:0.7rem;font-weight:900;color:var(--text2);
+  margin-bottom:0.35rem;letter-spacing:0.8px;text-transform:uppercase;
+}
+.fi,.fta,.fsel{
+  width:100%;background:var(--bg);border:2px solid var(--border2);
+  border-radius:8px;padding:0.55rem 0.72rem;color:var(--text);
+  font-family:'DM Sans',sans-serif;font-size:0.87rem;font-weight:700;
+  transition:border-color 0.2s;
+}
+.fi:focus,.fta:focus,.fsel:focus{outline:none;border-color:var(--accent3);}
+.fi::placeholder,.fta::placeholder{color:var(--text3);}
+.fta{resize:vertical;min-height:90px;}
+.fsel option{background:var(--surface);}
+.frow{display:flex;gap:0.55rem;}
+.tags-inp{display:flex;gap:0.5rem;}
+.tags-list{display:flex;flex-wrap:wrap;gap:0.38rem;margin-top:0.48rem;}
+.tpill{
+  background:var(--surface2);border:2px solid var(--border2);border-radius:5px;
+  padding:0.2rem 0.5rem;font-size:0.73rem;font-weight:800;
+  display:flex;align-items:center;gap:0.28rem;color:var(--text2);
+}
+.tremove{background:none;border:none;color:var(--text3);cursor:pointer;padding:0;font-size:0.85rem;line-height:1;font-weight:900;}
+.tremove:hover{color:var(--accent2);}
+.btn-row{display:flex;gap:0.65rem;margin-top:1.4rem;}
+.btn-p{
+  flex:1;background:var(--accent3);border:none;border-radius:8px;
+  padding:0.68rem 1rem;color:#fff;font-weight:900;
+  font-family:'DM Sans',sans-serif;font-size:0.88rem;cursor:pointer;transition:opacity 0.2s;
+  letter-spacing:0.3px;
+}
+.btn-p:hover{opacity:0.85;}
+.btn-s{
+  background:var(--surface2);border:2px solid var(--border2);border-radius:8px;
+  padding:0.68rem 1rem;color:var(--text2);font-family:'DM Sans',sans-serif;
+  font-size:0.88rem;font-weight:800;cursor:pointer;transition:all 0.2s;
+}
+.btn-s:hover{border-color:var(--text3);color:var(--text);}
+.btn-ai{
+  background:var(--accent3);border:none;border-radius:8px;
+  padding:0.5rem 0.9rem;color:#fff;font-weight:900;font-family:'DM Sans',sans-serif;
+  font-size:0.78rem;cursor:pointer;transition:all 0.2s;
+  display:flex;align-items:center;gap:0.35rem;letter-spacing:0.3px;
+}
+.btn-ai:hover{opacity:0.85;transform:translateY(-1px);}
+.btn-ai:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
+.ai-box{
+  background:rgba(124,58,237,0.07);border:2px solid rgba(124,58,237,0.2);
+  border-radius:9px;padding:0.9rem;margin-top:0.8rem;
+  font-size:0.8rem;font-weight:700;line-height:1.65;color:var(--text2);
+}
+.sec-divider{border:none;border-top:2px solid var(--border);margin:1.2rem 0;}
+.ai-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;}
+
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+.spin{display:inline-block;animation:spin 0.8s linear infinite;}
+
+/* notification */
+.notif{
+  position:fixed;top:1rem;right:1rem;z-index:999;
+  background:var(--text);border-radius:9px;
+  padding:0.75rem 1.1rem;font-size:0.83rem;font-weight:800;color:var(--surface);
+  box-shadow:0 4px 20px rgba(0,0,0,0.2);
+  transform:translateX(120%);transition:transform 0.3s;
+}
+.notif.show{transform:translateX(0);}
+</style>
+</head>
+<body>
+
+<div class="drag-overlay" id="dragOverlay">
+  <div class="drag-ico">🎵</div>
+  <div class="drag-txt">오디오 파일을 여기에 놓으세요</div>
+</div>
+
+<div class="app">
+  <!-- ═══ SIDEBAR ═══ -->
+  <aside class="sidebar">
+    <div class="logo">MUSE_DEPOT<span>AI MUSIC MANAGER</span></div>
+    <div class="sidebar-body">
+      <div class="s-label">라이브러리</div>
+      <div class="s-item active" onclick="setView('all')" id="nav-all">
+        <span class="s-icon">♪</span><span>모든 음악</span>
+        <span class="s-count" id="cnt-all">0</span>
+      </div>
+      <div class="s-item" onclick="setView('liked')" id="nav-liked">
+        <span class="s-icon">♥</span><span>좋아하는 곡</span>
+        <span class="s-count" id="cnt-liked">0</span>
+      </div>
+      <div class="s-item" onclick="setView('recent')" id="nav-recent">
+        <span class="s-icon">🕐</span><span>최근 추가됨</span>
+      </div>
+      <hr class="s-divider">
+      <div class="s-label">플랫폼</div>
+      <div class="s-item" onclick="setView('platform:Suno')" id="nav-suno">
+        <span class="s-icon">◈</span><span>Suno</span>
+        <span class="s-count" id="cnt-suno">0</span>
+      </div>
+      <div class="s-item" onclick="setView('platform:Udio')" id="nav-udio">
+        <span class="s-icon">◉</span><span>Udio</span>
+        <span class="s-count" id="cnt-udio">0</span>
+      </div>
+      <div class="s-item" onclick="setView('platform:Other')" id="nav-other">
+        <span class="s-icon">◌</span><span>Other</span>
+        <span class="s-count" id="cnt-other">0</span>
+      </div>
+      <hr class="s-divider">
+      <div class="pl-header">
+        <div class="s-label" style="padding:0;">플레이리스트</div>
+        <button class="pl-add" onclick="createPlaylist()" title="새 플레이리스트">+</button>
+      </div>
+      <div id="plSidebar"></div>
+    </div>
+  </aside>
+
+  <!-- ═══ MAIN ═══ -->
+  <div class="main">
+    <div class="toolbar">
+      <div class="view-title" id="viewTitle">모든 음악</div>
+      <div class="search-wrap">
+        <span class="search-ico">🔍</span>
+        <input type="text" id="searchInput" placeholder="제목, 아티스트, 장르, 태그..." oninput="renderContent()">
+      </div>
+      <div class="tb-right">
+        <button class="vbtn active" id="btnList" onclick="setViewMode('list')">☰</button>
+        <button class="vbtn" id="btnGrid" onclick="setViewMode('grid')">⊞</button>
+        <select class="sort-sel" id="sortSel" onchange="onSort()">
+          <option value="dateAdded-desc">최신 추가순</option>
+          <option value="title-asc">제목 A→Z</option>
+          <option value="artist-asc">아티스트 A→Z</option>
+          <option value="plays-desc">재생 많은 순</option>
+          <option value="duration-asc">짧은 순</option>
+          <option value="liked-desc">좋아요 순</option>
+        </select>
+        <button class="upload-btn" onclick="openModal('uploadModal')">＋ 음악 추가</button>
+      </div>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat">곡 <span class="stat-v" id="st-songs">0</span></div>
+      <div class="stat">총 재생시간 <span class="stat-v" id="st-dur">0:00</span></div>
+      <div class="stat">총 재생횟수 <span class="stat-v" id="st-plays">0</span></div>
+      <div class="stat">좋아요 <span class="stat-v" id="st-liked">0</span></div>
+    </div>
+
+    <div class="content-area" id="contentArea"></div>
+  </div>
+</div>
+
+<!-- ═══ PLAYER BAR ═══ -->
+<div class="player-bar">
+  <div class="p-left">
+    <div class="p-thumb" id="pThumb">♪</div>
+    <div class="p-info">
+      <div class="p-title" id="pTitle">—</div>
+      <div class="p-artist" id="pArtist">음악을 선택하세요</div>
+    </div>
+    <button class="p-heart" id="pHeart" onclick="toggleLikeCurrent()">♡</button>
+  </div>
+  <div class="p-center">
+    <div class="p-controls">
+      <button class="cbtn" id="btnShuffle" onclick="toggleShuffle()" title="셔플">⇄</button>
+      <button class="cbtn" onclick="prevSong()" title="이전">⏮</button>
+      <button class="pp-btn" id="ppBtn" onclick="togglePlay()">▶</button>
+      <button class="cbtn" onclick="nextSong()" title="다음">⏭</button>
+      <button class="cbtn" id="btnRepeat" onclick="toggleRepeat()" title="반복">↻</button>
+    </div>
+    <div class="prog-area">
+      <span class="tl" id="tCur">0:00</span>
+      <div class="prog-wrap" onclick="seekTo(event)" id="progWrap">
+        <div class="prog-fill" id="progFill"></div>
+      </div>
+      <span class="tl right" id="tTot">0:00</span>
+    </div>
+  </div>
+  <div class="p-right">
+    <div class="vol-wrap">
+      <span class="vol-ico" onclick="toggleMute()">🔊</span>
+      <div class="vol-bar" onclick="setVol(event)">
+        <div class="vol-fill" id="volFill"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─── CONTEXT MENU ─── -->
+<div class="ctx" id="ctxMenu">
+  <div class="ctx-item" onclick="ctx_play()">▶ 재생</div>
+  <div class="ctx-item" onclick="ctx_edit()">✏️ 편집</div>
+  <div class="ctx-item" onclick="ctx_like()">♥ 좋아요 토글</div>
+  <div class="ctx-item" onclick="ctx_addPl()">＋ 플레이리스트 추가</div>
+  <hr class="ctx-div">
+  <div class="ctx-item danger" onclick="ctx_del()">🗑 삭제</div>
+</div>
+
+<!-- ─── UPLOAD MODAL ─── -->
+<div class="modal-overlay" id="uploadModal">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title">음악 추가</div>
+      <button class="modal-x" onclick="closeModal('uploadModal')">×</button>
+    </div>
+    <div class="drop-zone" id="uploadZone">
+      <div class="drop-ico">📤</div>
+      <div class="drop-txt">아래 버튼으로 파일 선택 또는 드래그</div>
+      <div class="drop-sub">MP3, WAV, M4A 등 · 여러 파일 동시 가능</div>
+      <input type="file" id="fileInput" accept="audio/*" multiple onchange="handleFileInput(event)"
+        style="display:block;margin:1rem auto 0;width:100%;font-size:0.85rem;font-weight:700;
+        font-family:'DM Sans',sans-serif;color:var(--text2);cursor:pointer;
+        background:var(--surface);border:2px solid var(--border2);border-radius:8px;
+        padding:0.6rem 0.8rem;">
+    </div>
+  </div>
+</div>
+
+<!-- ─── EDIT MODAL ─── -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title">곡 정보 편집</div>
+      <button class="modal-x" onclick="closeModal('editModal')">×</button>
+    </div>
+    <div class="frow">
+      <div class="fg" style="flex:2;">
+        <label class="flabel">곡 제목</label>
+        <input class="fi" id="eTitle" placeholder="곡 제목">
+      </div>
+      <div class="fg" style="flex:1;">
+        <label class="flabel">플랫폼</label>
+        <select class="fsel" id="ePlatform">
+          <option value="Suno">Suno</option>
+          <option value="Udio">Udio</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow">
+      <div class="fg" style="flex:1;">
+        <label class="flabel">아티스트</label>
+        <input class="fi" id="eArtist" placeholder="아티스트명">
+      </div>
+      <div class="fg" style="flex:1;">
+        <label class="flabel">장르</label>
+        <input class="fi" id="eGenre" placeholder="K-Pop, Lo-fi, EDM...">
+      </div>
+    </div>
+    <div class="fg">
+      <label class="flabel">앨범</label>
+      <input class="fi" id="eAlbum" placeholder="앨범명 (선택)">
+    </div>
+    <div class="fg">
+      <label class="flabel">태그</label>
+      <div class="tags-inp">
+        <input class="fi" id="eTagIn" placeholder="태그 입력 후 Enter / ," style="flex:1;">
+        <button class="btn-s" onclick="addEditTag()" style="padding:0.4rem 0.75rem;font-size:0.8rem;">추가</button>
+      </div>
+      <div class="tags-list" id="eTagList"></div>
+    </div>
+    <div class="fg">
+      <label class="flabel">썸네일 이미지</label>
+      <input type="file" id="eThumb" accept="image/*" onchange="onThumbChange(event)"
+        style="display:block;width:100%;font-size:0.83rem;font-weight:700;
+        font-family:'DM Sans',sans-serif;color:var(--text2);cursor:pointer;
+        background:var(--bg);border:2px solid var(--border2);border-radius:8px;
+        padding:0.55rem 0.75rem;">
+      <div id="eThumbName" style="font-size:0.75rem;font-weight:700;color:var(--green);margin-top:0.35rem;"></div>
+    </div>
+
+    <hr class="sec-divider">
+
+    <div class="ai-hd">
+      <label class="flabel" style="margin:0;">📺 YouTube / 배포 메타데이터</label>
+      <button class="btn-ai" id="btnAI" onclick="genAI()">
+        <span>✦</span> AI 자동 생성
+      </button>
+    </div>
+    <div class="fg">
+      <label class="flabel">YouTube 제목</label>
+      <input class="fi" id="eYtTitle" placeholder="YouTube 업로드 제목">
+    </div>
+    <div class="fg">
+      <label class="flabel">YouTube 설명</label>
+      <textarea class="fta" id="eYtDesc" placeholder="설명글, 해시태그..."></textarea>
+    </div>
+    <div class="fg">
+      <label class="flabel">가사 / 노트</label>
+      <textarea class="fta" id="eLyrics" placeholder="가사 또는 메모..."></textarea>
+    </div>
+
+    <div id="aiBox" style="display:none;" class="ai-box"></div>
+
+    <div class="btn-row">
+      <button class="btn-s" onclick="closeModal('editModal')">취소</button>
+      <button class="btn-p" onclick="saveEdit()">💾 저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── PLAYLIST SELECT MODAL ─── -->
+<div class="modal-overlay" id="plModal">
+  <div class="modal" style="max-width:340px;">
+    <div class="modal-hd">
+      <div class="modal-title">플레이리스트 선택</div>
+      <button class="modal-x" onclick="closeModal('plModal')">×</button>
+    </div>
+    <div id="plModalList"></div>
+  </div>
+</div>
+
+<div class="notif" id="notif"></div>
+<audio id="audioEl"></audio>
+
+<script>
+const SK='musedepot_songs_v1', PK='musedepot_playlists_v1', SK2='musedepot_cfg_v1';
+let S={songs:[],playlists:[],cfg:{vol:0.8,shuffle:false,repeat:'none',viewMode:'list',sortBy:'dateAdded',sortDir:'desc'},view:'all',curId:null,playing:false,search:'',editId:null,ctxId:null};
+let editTags=[];
+
+function persist(){try{localStorage.setItem(SK,JSON.stringify(S.songs));localStorage.setItem(PK,JSON.stringify(S.playlists));localStorage.setItem(SK2,JSON.stringify(S.cfg));}catch(e){notify('⚠ 저장 공간 부족');}}
+function hydrate(){try{const s=localStorage.getItem(SK),p=localStorage.getItem(PK),c=localStorage.getItem(SK2);if(s)S.songs=JSON.parse(s);if(p)S.playlists=JSON.parse(p);if(c)S.cfg={...S.cfg,...JSON.parse(c)};}catch(e){}}
+
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
+function fmt(s){if(!s||isNaN(s))return'0:00';const m=Math.floor(s/60),sec=Math.floor(s%60);return`${m}:${sec.toString().padStart(2,'0')}`;}
+function esc(s){if(!s)return'';return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function notify(msg,dur=2800){const el=document.getElementById('notif');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),dur);}
+
+function getList(){
+  let list=[...S.songs];const q=S.search.toLowerCase();
+  if(S.view==='liked')list=list.filter(s=>s.liked);
+  else if(S.view==='recent'){const c=Date.now()-7*86400000;list=list.filter(s=>s.dateAdded>c);}
+  else if(S.view.startsWith('platform:')){const p=S.view.split(':')[1];list=list.filter(s=>s.platform===p);}
+  else if(S.view.startsWith('playlist:')){const pl=S.playlists.find(p=>p.id===S.view.split(':')[1]);if(pl)list=list.filter(s=>pl.songIds.includes(s.id));}
+  if(q)list=list.filter(s=>(s.title||'').toLowerCase().includes(q)||(s.artist||'').toLowerCase().includes(q)||(s.genre||'').toLowerCase().includes(q)||(s.tags||[]).some(t=>t.toLowerCase().includes(q)));
+  const{sortBy,sortDir}=S.cfg;
+  list.sort((a,b)=>{let va=a[sortBy]??(typeof a[sortBy]==='number'?0:''),vb=b[sortBy]??(typeof b[sortBy]==='number'?0:'');if(typeof va==='string'){va=va.toLowerCase();vb=(vb||'').toLowerCase();}if(va<vb)return sortDir==='asc'?-1:1;if(va>vb)return sortDir==='asc'?1:-1;return 0;});
+  return list;
+}
+
+const VT={all:'모든 음악',liked:'좋아하는 곡',recent:'최근 추가됨','platform:Suno':'Suno','platform:Udio':'Udio','platform:Other':'Other'};
+const NM={all:'nav-all',liked:'nav-liked',recent:'nav-recent','platform:Suno':'nav-suno','platform:Udio':'nav-udio','platform:Other':'nav-other'};
+
+function setView(v){
+  S.view=v;
+  document.querySelectorAll('.s-item,.pl-item').forEach(el=>el.classList.remove('active'));
+  if(NM[v])document.getElementById(NM[v])?.classList.add('active');
+  if(v.startsWith('playlist:')){const pl=S.playlists.find(p=>p.id===v.split(':')[1]);document.getElementById('viewTitle').textContent=pl?pl.name:'플레이리스트';document.querySelectorAll('.pl-item').forEach(el=>{if(el.dataset.plid===v.split(':')[1])el.classList.add('active');});}
+  else document.getElementById('viewTitle').textContent=VT[v]||v;
+  renderContent();
+}
+
+function setViewMode(m){S.cfg.viewMode=m;document.getElementById('btnList').classList.toggle('active',m==='list');document.getElementById('btnGrid').classList.toggle('active',m==='grid');persist();renderContent();}
+function onSort(){const val=document.getElementById('sortSel').value.split('-');S.cfg.sortBy=val[0];S.cfg.sortDir=val[1];persist();renderContent();}
+
+function renderContent(){
+  S.search=document.getElementById('searchInput').value;
+  const list=getList();const area=document.getElementById('contentArea');
+  updateSidebar();updateStats(list);
+  if(!list.length){area.innerHTML=`<div class="empty"><div class="empty-ico">🎵</div><div class="empty-h">${S.songs.length?'검색 결과 없음':'음악이 없습니다'}</div><div class="empty-s">${S.songs.length?'다른 검색어를 시도해보세요.':'위의 "음악 추가" 버튼 또는 파일을 화면에 끌어다 놓으세요.'}</div></div>`;return;}
+  S.cfg.viewMode==='grid'?renderGrid(list,area):renderList(list,area);
+}
+
+function renderList(list,area){
+  const rows=list.map((s,i)=>{const cur=s.id===S.curId;const pc=`pp-${(s.platform||'other').toLowerCase()}`;
+    return`<div class="song-row ${cur?'playing':''}" ondblclick="playSong('${s.id}')" oncontextmenu="openCtx(event,'${s.id}')">
+      <div class="rn">${cur&&S.playing?'▶':i+1}</div>
+      <div class="rthumb">${s.thumbnail?`<img src="${esc(s.thumbnail)}" alt="">`:'♪'}</div>
+      <div class="rinfo"><div class="row-title">${esc(s.title||'제목 없음')}</div><div class="row-artist">${esc(s.artist||'—')}</div></div>
+      <div style="padding:0 0.3rem;"><span class="ppill ${pc}">${esc(s.platform||'Other')}</span></div>
+      <div class="row-genre">${esc(s.genre||'—')}</div>
+      <div class="row-tags">${(s.tags||[]).slice(0,3).map(t=>`<span class="rtag">${esc(t)}</span>`).join('')}</div>
+      <div class="row-dur">${fmt(s.duration)}</div>
+      <div class="row-plays">${s.plays||0}</div>
+      <div class="row-like ${s.liked?'liked':''}" onclick="toggleLike('${s.id}')">${s.liked?'♥':'♡'}</div>
+    </div>`;}).join('');
+  area.innerHTML=`<div class="list-header">
+    <div class="ch">#</div><div class="ch"></div>
+    <div class="ch">제목</div><div class="ch">플랫폼</div>
+    <div class="ch">장르</div><div class="ch">태그</div>
+    <div class="ch">시간</div><div class="ch">재생</div><div class="ch"></div>
+  </div>${rows}`;
+}
+
+function renderGrid(list,area){
+  const cards=list.map(s=>{const cur=s.id===S.curId;const pc=`pp-${(s.platform||'other').toLowerCase()}`;
+    return`<div class="g-card ${cur?'playing':''}" ondblclick="playSong('${s.id}')" oncontextmenu="openCtx(event,'${s.id}')">
+      <div class="g-thumb">${s.thumbnail?`<img src="${esc(s.thumbnail)}" alt="">`:'♪'}<div class="g-overlay"><div class="g-play">${cur&&S.playing?'⏸':'▶'}</div></div></div>
+      <div class="g-info"><div class="g-title">${esc(s.title||'제목 없음')}</div><div class="g-artist">${esc(s.artist||'—')}</div>
+      <div class="g-foot"><span class="ppill ${pc}" style="font-size:0.6rem;">${esc(s.platform||'Other')}</span><span class="g-plays">${s.plays||0} plays</span></div></div>
+    </div>`;}).join('');
+  area.innerHTML=`<div class="grid-wrap">${cards}</div>`;
+}
+
+function updateSidebar(){
+  document.getElementById('cnt-all').textContent=S.songs.length;
+  document.getElementById('cnt-liked').textContent=S.songs.filter(s=>s.liked).length;
+  document.getElementById('cnt-suno').textContent=S.songs.filter(s=>s.platform==='Suno').length;
+  document.getElementById('cnt-udio').textContent=S.songs.filter(s=>s.platform==='Udio').length;
+  document.getElementById('cnt-other').textContent=S.songs.filter(s=>!s.platform||s.platform==='Other').length;
+  document.getElementById('plSidebar').innerHTML=S.playlists.map(pl=>`<div class="pl-item" data-plid="${pl.id}" onclick="setView('playlist:${pl.id}')"><div class="pl-dot" style="background:${pl.color}"></div><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(pl.name)}</span><span style="font-size:0.65rem;font-weight:800;color:var(--text3);">${pl.songIds.length}</span></div>`).join('');
+}
+
+function updateStats(list){
+  document.getElementById('st-songs').textContent=list.length;
+  document.getElementById('st-dur').textContent=fmt(list.reduce((a,s)=>a+(s.duration||0),0));
+  document.getElementById('st-plays').textContent=list.reduce((a,s)=>a+(s.plays||0),0);
+  document.getElementById('st-liked').textContent=list.filter(s=>s.liked).length;
+}
+
+const audio=document.getElementById('audioEl');
+
+function playSong(id){
+  const song=S.songs.find(s=>s.id===id);if(!song)return;
+  if(S.curId===id){togglePlay();return;}
+  S.curId=id;audio.src=song.url;audio.volume=S.cfg.vol;
+  audio.play().then(()=>{S.playing=true;song.plays=(song.plays||0)+1;persist();updatePlayerUI();renderContent();}).catch(e=>notify('재생 오류: '+e.message));
+}
+function togglePlay(){if(!S.curId)return;if(S.playing){audio.pause();S.playing=false;}else{audio.play();S.playing=true;}updatePlayerUI();renderContent();}
+function prevSong(){const list=getList();if(!list.length)return;const idx=list.findIndex(s=>s.id===S.curId);playSong(list[(idx-1+list.length)%list.length].id);}
+function nextSong(){
+  const list=getList();if(!list.length)return;
+  if(S.cfg.shuffle){const o=list.filter(s=>s.id!==S.curId);if(o.length)playSong(o[Math.floor(Math.random()*o.length)].id);return;}
+  const idx=list.findIndex(s=>s.id===S.curId);
+  if(S.cfg.repeat==='none'&&idx===list.length-1){S.playing=false;updatePlayerUI();renderContent();return;}
+  playSong(list[(idx+1)%list.length].id);
+}
+function toggleShuffle(){S.cfg.shuffle=!S.cfg.shuffle;persist();updatePlayerUI();}
+function toggleRepeat(){const c=['none','all','one'],i=c.indexOf(S.cfg.repeat);S.cfg.repeat=c[(i+1)%c.length];persist();updatePlayerUI();}
+function toggleMute(){audio.muted=!audio.muted;document.querySelector('.vol-ico').textContent=audio.muted?'🔇':'🔊';}
+function setVol(e){const r=e.currentTarget.getBoundingClientRect(),p=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));audio.volume=p;S.cfg.vol=p;document.getElementById('volFill').style.width=(p*100)+'%';persist();}
+function seekTo(e){const r=e.currentTarget.getBoundingClientRect(),p=(e.clientX-r.left)/r.width;if(audio.duration)audio.currentTime=audio.duration*p;}
+function toggleLike(id){const s=S.songs.find(s=>s.id===id);if(s){s.liked=!s.liked;persist();renderContent();if(id===S.curId)updatePlayerUI();}}
+function toggleLikeCurrent(){if(S.curId)toggleLike(S.curId);}
+
+audio.ontimeupdate=()=>{const p=audio.duration?(audio.currentTime/audio.duration)*100:0;document.getElementById('progFill').style.width=p+'%';document.getElementById('tCur').textContent=fmt(audio.currentTime);document.getElementById('tTot').textContent=fmt(audio.duration);};
+audio.onended=()=>{if(S.cfg.repeat==='one'){audio.currentTime=0;audio.play();}else nextSong();};
+
+function updatePlayerUI(){
+  const s=S.songs.find(s=>s.id===S.curId);
+  document.getElementById('ppBtn').textContent=S.playing?'⏸':'▶';
+  document.getElementById('btnShuffle').classList.toggle('active',S.cfg.shuffle);
+  const rb=document.getElementById('btnRepeat');rb.classList.toggle('active',S.cfg.repeat!=='none');rb.textContent=S.cfg.repeat==='one'?'↺':'↻';
+  if(s){document.getElementById('pTitle').textContent=s.title||'제목 없음';document.getElementById('pArtist').textContent=s.artist||'—';const h=document.getElementById('pHeart');h.textContent=s.liked?'♥':'♡';h.classList.toggle('liked',!!s.liked);const th=document.getElementById('pThumb');th.innerHTML=s.thumbnail?`<img src="${esc(s.thumbnail)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">`:'♪';}
+}
+
+function handleFileInput(e){processFiles(Array.from(e.target.files));closeModal('uploadModal');}
+function processFiles(files){
+  const af=files.filter(f=>f.type.startsWith('audio/')||f.name.match(/\.(mp3|wav|m4a|ogg|flac)$/i));
+  if(!af.length){notify('오디오 파일이 없습니다.');return;}
+  notify(`${af.length}개 파일 업로드 중...`);
+  af.forEach(file=>{const r=new FileReader();r.onload=ev=>{const song={id:uid(),url:ev.target.result,title:file.name.replace(/\.[^/.]+$/,''),artist:'',album:'',genre:'',platform:'Suno',tags:[],thumbnail:null,duration:0,plays:0,liked:false,dateAdded:Date.now(),youtubeTitle:'',youtubeDescription:'',lyrics:''};const tmp=new Audio();tmp.src=ev.target.result;tmp.onloadedmetadata=()=>{song.duration=tmp.duration;persist();renderContent();};S.songs.push(song);persist();renderContent();};r.readAsDataURL(file);});
+}
+
+function openEdit(id){
+  const s=S.songs.find(s=>s.id===id);if(!s)return;S.editId=id;editTags=[...s.tags];
+  document.getElementById('eTitle').value=s.title||'';document.getElementById('eArtist').value=s.artist||'';document.getElementById('eAlbum').value=s.album||'';document.getElementById('eGenre').value=s.genre||'';document.getElementById('ePlatform').value=s.platform||'Suno';document.getElementById('eYtTitle').value=s.youtubeTitle||'';document.getElementById('eYtDesc').value=s.youtubeDescription||'';document.getElementById('eLyrics').value=s.lyrics||'';document.getElementById('aiBox').style.display='none';
+  renderEditTags();openModal('editModal');
+}
+function renderEditTags(){document.getElementById('eTagList').innerHTML=editTags.map(t=>`<span class="tpill">${esc(t)}<button class="tremove" onclick="remEditTag('${esc(t)}')">×</button></span>`).join('');}
+function addEditTag(){const inp=document.getElementById('eTagIn'),vals=inp.value.split(/[,，]/).map(v=>v.trim()).filter(v=>v&&!editTags.includes(v));editTags.push(...vals);inp.value='';renderEditTags();}
+function remEditTag(t){editTags=editTags.filter(x=>x!==t);renderEditTags();}
+document.getElementById('eTagIn').addEventListener('keypress',e=>{if(e.key==='Enter'){e.preventDefault();addEditTag();}});
+
+function onThumbChange(e){const f=e.target.files[0];if(f)document.getElementById('eThumbName').textContent='✓ '+f.name;}
+function saveEdit(){
+  const s=S.songs.find(s=>s.id===S.editId);if(!s)return;
+  s.title=document.getElementById('eTitle').value;s.artist=document.getElementById('eArtist').value;s.album=document.getElementById('eAlbum').value;s.genre=document.getElementById('eGenre').value;s.platform=document.getElementById('ePlatform').value;s.tags=[...editTags];s.youtubeTitle=document.getElementById('eYtTitle').value;s.youtubeDescription=document.getElementById('eYtDesc').value;s.lyrics=document.getElementById('eLyrics').value;
+  const tf=document.getElementById('eThumb').files[0];if(tf){const r=new FileReader();r.onload=ev=>{s.thumbnail=ev.target.result;persist();renderContent();if(s.id===S.curId)updatePlayerUI();};r.readAsDataURL(tf);}
+  persist();renderContent();if(s.id===S.curId)updatePlayerUI();closeModal('editModal');notify('✓ 저장 완료');
+}
+
+async function genAI(){
+  const btn=document.getElementById('btnAI'),box=document.getElementById('aiBox');
+  const s=S.songs.find(s=>s.id===S.editId);if(!s)return;
+  const title=document.getElementById('eTitle').value||s.title,artist=document.getElementById('eArtist').value||s.artist,genre=document.getElementById('eGenre').value;
+  btn.disabled=true;btn.innerHTML='<span class="spin">⟳</span> 생성 중...';box.style.display='none';
+  const prompt=`당신은 한국 AI 음악 마케팅 전문가입니다. 아래 정보를 바탕으로 YouTube와 DistroKid 배포용 메타데이터를 한국어로 생성하세요.\n\n곡 정보:\n- 제목: ${title||'미정'}\n- 아티스트: ${artist||'AI 생성'}\n- 장르: ${genre||'미정'}\n- 태그: ${editTags.join(', ')||'없음'}\n- 생성 플랫폼: ${s.platform}\n\n반드시 JSON만 반환하세요 (마크다운 없이):\n{"youtubeTitle":"이모지+클릭률 최적화 제목","youtubeDescription":"3-4문단 설명+해시태그 10개","suggestedTags":["태그1","태그2","태그3","태그4","태그5"],"suggestedGenre":"장르명","distrokidNotes":"DistroKid 업로드 시 주의사항 1-2줄"}`;
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:prompt}]})});
+    const data=await res.json();const raw=data.content?.map(c=>c.text||'').join('')||'';
+    const parsed=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    if(parsed.youtubeTitle)document.getElementById('eYtTitle').value=parsed.youtubeTitle;
+    if(parsed.youtubeDescription)document.getElementById('eYtDesc').value=parsed.youtubeDescription;
+    if(parsed.suggestedTags){parsed.suggestedTags.forEach(t=>{if(!editTags.includes(t))editTags.push(t);});renderEditTags();}
+    if(parsed.suggestedGenre&&!document.getElementById('eGenre').value)document.getElementById('eGenre').value=parsed.suggestedGenre;
+    box.style.display='block';box.innerHTML=`✦ AI 생성 완료! YouTube 제목·설명·태그가 입력되었습니다.${parsed.distrokidNotes?'<br><br>📦 DistroKid: '+esc(parsed.distrokidNotes):''}`;
+    notify('✦ AI 메타데이터 생성 완료!');
+  }catch(e){box.style.display='block';box.innerHTML='⚠ 생성 실패: '+esc(e.message);}
+  btn.disabled=false;btn.innerHTML='<span>✦</span> AI 자동 생성';
+}
+
+function openCtx(e,id){e.preventDefault();S.ctxId=id;const m=document.getElementById('ctxMenu');const mx=Math.min(e.clientX,window.innerWidth-190),my=Math.min(e.clientY,window.innerHeight-200);m.style.left=mx+'px';m.style.top=my+'px';m.classList.add('active');}
+function closeCtx(){document.getElementById('ctxMenu').classList.remove('active');}
+document.addEventListener('click',closeCtx);
+
+function ctx_play(){if(S.ctxId)playSong(S.ctxId);closeCtx();}
+function ctx_edit(){if(S.ctxId)openEdit(S.ctxId);closeCtx();}
+function ctx_like(){if(S.ctxId)toggleLike(S.ctxId);closeCtx();}
+function ctx_del(){if(!S.ctxId)return;if(confirm('이 곡을 삭제하시겠습니까?')){S.songs=S.songs.filter(s=>s.id!==S.ctxId);S.playlists.forEach(pl=>{pl.songIds=pl.songIds.filter(id=>id!==S.ctxId);});if(S.curId===S.ctxId){S.curId=null;S.playing=false;audio.pause();updatePlayerUI();}persist();renderContent();notify('🗑 삭제 완료');}closeCtx();}
+function ctx_addPl(){if(!S.ctxId)return;const list=document.getElementById('plModalList');if(!S.playlists.length){list.innerHTML='<p style="color:var(--text3);padding:1rem;text-align:center;font-weight:800;">플레이리스트가 없습니다.<br>사이드바의 + 버튼으로 만드세요.</p>';}else{list.innerHTML=S.playlists.map(pl=>`<div class="s-item" onclick="addToPl('${pl.id}')"><div class="pl-dot" style="background:${pl.color}"></div>${esc(pl.name)}<span class="s-count">${pl.songIds.length}</span></div>`).join('');}openModal('plModal');closeCtx();}
+function addToPl(plId){const pl=S.playlists.find(p=>p.id===plId);if(pl&&S.ctxId&&!pl.songIds.includes(S.ctxId)){pl.songIds.push(S.ctxId);persist();renderContent();notify('✓ 플레이리스트에 추가됨');}closeModal('plModal');}
+
+const PLC=['#1a6fff','#e8005a','#7c3aed','#0a8a5c','#f97316','#f59e0b','#3b82f6'];
+function createPlaylist(){const name=prompt('플레이리스트 이름:');if(!name?.trim())return;S.playlists.push({id:uid(),name:name.trim(),songIds:[],color:PLC[Math.floor(Math.random()*PLC.length)],dateCreated:Date.now()});persist();renderContent();}
+
+let dc=0;
+document.addEventListener('dragenter',e=>{e.preventDefault();dc++;document.getElementById('dragOverlay').classList.add('active');});
+document.addEventListener('dragleave',e=>{if(--dc<=0){dc=0;document.getElementById('dragOverlay').classList.remove('active');}});
+document.addEventListener('dragover',e=>e.preventDefault());
+document.addEventListener('drop',e=>{e.preventDefault();dc=0;document.getElementById('dragOverlay').classList.remove('active');processFiles(Array.from(e.dataTransfer.files));});
+
+const uz=document.getElementById('uploadZone');
+uz.addEventListener('dragover',e=>{e.preventDefault();uz.classList.add('drag-over');});
+uz.addEventListener('dragleave',()=>uz.classList.remove('drag-over'));
+uz.addEventListener('drop',e=>{e.preventDefault();uz.classList.remove('drag-over');processFiles(Array.from(e.dataTransfer.files));closeModal('uploadModal');});
+
+function openModal(id){document.getElementById(id).classList.add('active');}
+function closeModal(id){document.getElementById(id).classList.remove('active');}
+document.querySelectorAll('.modal-overlay').forEach(el=>{el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('active');});});
+
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
+  if(e.code==='Space'){e.preventDefault();togglePlay();}
+  if(e.code==='ArrowRight'){e.preventDefault();nextSong();}
+  if(e.code==='ArrowLeft'){e.preventDefault();prevSong();}
+  if(e.code==='KeyL'){e.preventDefault();toggleLikeCurrent();}
+  if(e.code==='KeyS'){e.preventDefault();toggleShuffle();}
+});
+
+hydrate();setViewMode(S.cfg.viewMode);document.getElementById('volFill').style.width=(S.cfg.vol*100)+'%';audio.volume=S.cfg.vol;renderContent();updatePlayerUI();
+</script>
+</body>
+</html>
