@@ -901,6 +901,21 @@ document.addEventListener('keydown',e=>{
 });
 
 hydrate();setViewMode(S.cfg.viewMode);document.getElementById('volFill').style.width=(S.cfg.vol*100)+'%';audio.volume=S.cfg.vol;renderContent();updatePlayerUI();
+
+// HTML onclick에서 접근 가능하도록 전역 노출
+window.setView=setView;window.setViewMode=setViewMode;window.onSort=onSort;
+window.openModal=openModal;window.closeModal=closeModal;
+window.openCtx=openCtx;window.handleFileInput=handleFileInput;
+window.openEdit=openEdit;window.addEditTag=addEditTag;window.remEditTag=remEditTag;
+window.onThumbChange=onThumbChange;window.saveEdit=saveEdit;window.genAI=genAI;
+window.toggleLike=toggleLike;window.toggleLikeCurrent=toggleLikeCurrent;
+window.playSong=playSong;window.togglePlay=togglePlay;
+window.prevSong=prevSong;window.nextSong=nextSong;
+window.toggleShuffle=toggleShuffle;window.toggleRepeat=toggleRepeat;
+window.toggleMute=toggleMute;window.setVol=setVol;window.seekTo=seekTo;
+window.ctx_play=ctx_play;window.ctx_edit=ctx_edit;window.ctx_like=ctx_like;
+window.ctx_del=ctx_del;window.ctx_addPl=ctx_addPl;window.addToPl=addToPl;
+window.createPlaylist=createPlaylist;window.renderContent=renderContent;
 }); // DOMContentLoaded
 </script>
 </body>
