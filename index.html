@@ -168,14 +168,14 @@ body{
 
 /* ─── LIST VIEW ─── */
 .list-header{
-  display:grid;grid-template-columns:42px 44px 1fr 100px 140px 58px 44px 34px;
+  display:grid;grid-template-columns:50px 44px 1fr 100px 140px 58px 44px 34px;
   align-items:center;padding:0.45rem 1.3rem;border-bottom:2px solid var(--border2);
   background:var(--surface);position:sticky;top:0;z-index:10;
 }
 .ch{font-size:0.62rem;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);padding:0.2rem 0.25rem;user-select:none;}
 .song-row{
-  display:grid;grid-template-columns:42px 44px 1fr 100px 140px 58px 44px 34px;
-  align-items:center;padding:0 1.3rem;height:58px;border-bottom:1px solid var(--border);
+  display:grid;grid-template-columns:50px 44px 1fr 100px 140px 58px 44px 34px;
+  align-items:center;padding:0 1.3rem;height:62px;border-bottom:1px solid var(--border);
   cursor:pointer;transition:background 0.1s;
 }
 .song-row:hover{background:var(--surface);}
@@ -183,10 +183,10 @@ body{
 .song-row.playing .row-title{color:var(--accent3);font-weight:900;}
 .rn{font-family:'JetBrains Mono',monospace;font-size:0.73rem;font-weight:700;color:var(--text3);text-align:center;display:flex;align-items:center;justify-content:center;}
 .song-row.playing .rn{color:var(--accent3);}
-.reorder-cell{display:flex;flex-direction:column;align-items:center;gap:0;}
-.reorder-btn{background:none;border:none;cursor:pointer;font-size:0.72rem;color:var(--text3);padding:1px 6px;line-height:1;font-weight:900;border-radius:3px;transition:all 0.12s;}
-.reorder-btn:hover{color:var(--accent3);background:rgba(124,58,237,0.1);}
-.reorder-btn:active{transform:scale(0.9);}
+.reorder-cell{display:flex;flex-direction:column;align-items:center;gap:1px;}
+.reorder-btn{background:none;border:1.5px solid var(--border2);cursor:pointer;font-size:0.8rem;color:var(--text2);padding:4px 10px;line-height:1;font-weight:900;border-radius:5px;transition:all 0.12s;-webkit-tap-highlight-color:rgba(124,58,237,0.2);touch-action:manipulation;user-select:none;}
+.reorder-btn:hover{color:var(--accent3);background:rgba(124,58,237,0.1);border-color:var(--accent3);}
+.reorder-btn:active{transform:scale(0.92);background:rgba(124,58,237,0.15);color:var(--accent3);}
 .rthumb{width:36px;height:36px;border-radius:6px;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:0.95rem;overflow:hidden;border:1px solid var(--border);}
 .rthumb img{width:100%;height:100%;object-fit:cover;}
 .rinfo{overflow:hidden;padding:0 0.65rem;}
@@ -980,7 +980,7 @@ function renderList(list,area){
     const memo=[s.genre,(s.tags||[]).join(', ')].filter(Boolean).join(' · ');
     const locIcon=s.fsaFileName?'<span title="로컬 폴더" style="font-size:0.6rem;">📂</span>':'';
     return`<div class="song-row ${cur?'playing':''}" data-id="${s.id}" draggable="${isM}">
-      <div class="rn">${isM?`<div class="reorder-cell"><button class="reorder-btn" data-move="-1" data-sid="${s.id}">▲</button><button class="reorder-btn" data-move="1" data-sid="${s.id}">▼</button></div>`:(cur&&S.playing?'⏸':i+1)}</div>
+      <div class="rn">${isM?`<div class="reorder-cell"><button class="reorder-btn" data-move="-1" data-sid="${s.id}" onclick="event.stopPropagation();window._moveRow('${s.id}',-1)">▲</button><button class="reorder-btn" data-move="1" data-sid="${s.id}" onclick="event.stopPropagation();window._moveRow('${s.id}',1)">▼</button></div>`:(cur&&S.playing?'⏸':i+1)}</div>
       <div class="rthumb">${s.thumbnail?`<img src="${esc(s.thumbnail)}">`:'♪'}</div>
       <div class="rinfo" data-edit="${s.id}"><div class="row-title">${locIcon}${esc(s.title||'제목 없음')}</div><div class="row-artist">${esc(s.artist||'—')}</div></div>
       <div style="padding:0 0.3rem;"><span class="ppill ${pc}">${esc(s.platform||'Other')}</span></div>
@@ -1027,11 +1027,16 @@ function updateStats(list){
 // ══════════════════════════════════════════
 let dragSrc=null;
 function moveRow(id,dir){
-  const list=getList(),idx=list.findIndex(s=>s.id===id),ni=idx+dir;
+  const list=getList();
+  // 먼저 전체 리스트에 순차적 order 값 부여 (빈 값 방지)
+  list.forEach((s,i)=>{if(s.order==null)s.order=i;});
+  const idx=list.findIndex(s=>s.id===id),ni=idx+dir;
   if(ni<0||ni>=list.length)return;
-  const a=list[idx],b=list[ni],t=a.order??idx;a.order=b.order??ni;b.order=t;
+  const a=list[idx],b=list[ni];
+  const tmpOrder=a.order; a.order=b.order; b.order=tmpOrder;
   dbPut('songs',a);dbPut('songs',b);renderContent();
 }
+window._moveRow=moveRow;
 function initDragSort(area){
   const rows=()=>[...area.querySelectorAll('.song-row')];
   rows().forEach(row=>{
@@ -1295,14 +1300,16 @@ document.getElementById('volIco').addEventListener('click',()=>{audio.muted=!aud
 document.getElementById('volBar').addEventListener('click',e=>{const r=e.currentTarget.getBoundingClientRect(),p=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));audio.volume=p;S.cfg.vol=p;document.getElementById('volFill').style.width=(p*100)+'%';saveCfg();});
 
 // Content area delegation
-document.getElementById('contentArea').addEventListener('click',e=>{
-  const rb=e.target.closest('[data-move]');if(rb){e.stopPropagation();moveRow(rb.dataset.sid,parseInt(rb.dataset.move));return;}
+const contentArea=document.getElementById('contentArea');
+function handleContentAction(e){
+  const rb=e.target.closest('[data-move]');if(rb){e.preventDefault();e.stopPropagation();moveRow(rb.dataset.sid,parseInt(rb.dataset.move));return;}
   const ed=e.target.closest('[data-edit]');if(ed){e.stopPropagation();openEdit(ed.dataset.edit);return;}
   const mm=e.target.closest('[data-memo]');if(mm){e.stopPropagation();quickMemo(mm.dataset.memo,mm);return;}
   const dl=e.target.closest('[data-del]');if(dl){e.stopPropagation();deleteSong(dl.dataset.del);return;}
   const row=e.target.closest('[data-id]');if(row)playSong(row.dataset.id);
-});
-document.getElementById('contentArea').addEventListener('contextmenu',e=>{const r=e.target.closest('[data-id]');if(r)openCtx(e,r.dataset.id);});
+}
+contentArea.addEventListener('click',handleContentAction);
+contentArea.addEventListener('contextmenu',e=>{const r=e.target.closest('[data-id]');if(r)openCtx(e,r.dataset.id);});
 
 // Context menu
 document.addEventListener('click',e=>{if(!e.target.closest('.ctx'))closeCtx();});
@@ -1356,6 +1363,12 @@ document.addEventListener('drop',e=>{e.preventDefault();dc=0;document.getElement
 // ══════════════════════════════════════════
 initDB().then(async()=>{
   await hydrate();
+  // order 값 정규화 — 빈 값이 있으면 순차 부여
+  let needsOrderFix=S.songs.some(s=>s.order==null);
+  if(needsOrderFix){
+    S.songs.sort((a,b)=>(a.order??999999)-(b.order??999999)||(a.dateAdded||0)-(b.dateAdded||0));
+    S.songs.forEach((s,i)=>{s.order=i;dbPut('songs',s);});
+  }
   S.songs.forEach(s=>{
     s.blobUrl=null;
     if(s.fileData){try{s.blobUrl=URL.createObjectURL(new Blob([s.fileData],{type:s.fileType||'audio/mpeg'}));}catch(e){}}
