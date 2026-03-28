@@ -811,7 +811,7 @@ function renderList(list,area){
         <div class="row-artist">${esc(s.artist||'—')}</div>
       </div>
       <div style="padding:0 0.3rem;"><span class="ppill ${pc}">${esc(s.platform||'Other')}</span></div>
-      <div class="row-memo">${esc(memo||'—')}</div>
+      <div class="row-memo" onclick="event.stopPropagation();quickMemo('${s.id}',this)" title="탭하여 메모 편집">${esc(memo)||'<span style="color:var(--text3);font-style:italic;">메모 추가...</span>'}</div>
       <div class="row-dur">${fmt(s.duration)}</div>
       <div class="row-plays">${s.plays||0}</div>
       <div class="row-del" onclick="event.stopPropagation();deleteSong('${s.id}')">🗑</div>
@@ -832,7 +832,38 @@ function renderList(list,area){
   if(isManual) initDragSort(area);
 }
 
-function deleteSong(id){
+function quickMemo(id, cell){
+  const song=S.songs.find(s=>s.id===id);
+  if(!song)return;
+  const current=(song.tags||[]).join(', ');
+  // 이미 입력창 열려있으면 닫기
+  if(cell.querySelector('input'))return;
+  const orig=cell.innerHTML;
+  cell.innerHTML=`
+    <input id="qm_${id}" type="text" value="${esc(current)}"
+      placeholder="메모 입력..."
+      style="width:100%;background:var(--bg);border:2px solid var(--accent3);
+      border-radius:6px;padding:0.3rem 0.5rem;font-size:0.78rem;font-weight:700;
+      font-family:'DM Sans',sans-serif;color:var(--text);outline:none;"
+      onclick="event.stopPropagation()"
+      ondblclick="event.stopPropagation()">`;
+  const inp=cell.querySelector('input');
+  inp.focus();
+  inp.select();
+  function save(){
+    const val=inp.value.trim();
+    song.tags=val?val.split(/[,，]/).map(v=>v.trim()).filter(Boolean):[];
+    dbPut('songs',song);
+    renderContent();
+  }
+  inp.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){e.preventDefault();save();}
+    if(e.key==='Escape'){e.preventDefault();cell.innerHTML=orig;}
+    e.stopPropagation();
+  });
+  inp.addEventListener('blur',save);
+}
+window.quickMemo=quickMemo;
   if(!confirm('이 곡을 삭제할까요?'))return;
   dbDelete('songs',id);
   S.songs=S.songs.filter(s=>s.id!==id);
