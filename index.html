@@ -864,6 +864,8 @@ function quickMemo(id, cell){
   inp.addEventListener('blur',save);
 }
 window.quickMemo=quickMemo;
+
+function deleteSong(id){
   if(!confirm('이 곡을 삭제할까요?'))return;
   dbDelete('songs',id);
   S.songs=S.songs.filter(s=>s.id!==id);
