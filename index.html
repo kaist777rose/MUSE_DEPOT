@@ -878,10 +878,24 @@ function deleteSong(id){
 let dragSrc=null;
 function initDragSort(area){
   const getRows=()=>[...area.querySelectorAll('.song-row')];
-  let touchDragEl=null, touchClone=null, touchStartY=0, touchStartIdx=-1;
 
+  // ── 위/아래 버튼 방식 (iOS 완벽 호환) ──
   getRows().forEach((row,idx)=>{
-    // ── 마우스 드래그 (데스크톱) ──
+    const handle=row.querySelector('.rn');
+    if(!handle)return;
+    handle.innerHTML=`
+      <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
+        <button onclick="event.stopPropagation();moveRow('${row.dataset.id}',-1)"
+          style="background:none;border:none;cursor:pointer;font-size:0.85rem;
+          color:var(--accent3);padding:1px 4px;line-height:1;font-weight:900;">▲</button>
+        <button onclick="event.stopPropagation();moveRow('${row.dataset.id}',1)"
+          style="background:none;border:none;cursor:pointer;font-size:0.85rem;
+          color:var(--accent3);padding:1px 4px;line-height:1;font-weight:900;">▼</button>
+      </div>`;
+  });
+
+  // ── 마우스 드래그 (데스크톱 보너스) ──
+  getRows().forEach(row=>{
     row.draggable=true;
     row.addEventListener('dragstart',e=>{
       dragSrc=row;e.dataTransfer.effectAllowed='move';
@@ -901,62 +915,31 @@ function initDragSort(area){
       e.preventDefault();
       getRows().forEach(r=>r.classList.remove('drag-over-top'));
       if(!dragSrc||dragSrc===row)return;
-      reorder(dragSrc.dataset.id, row.dataset.id);
-    });
-
-    // ── 터치 드래그 (iPad/iPhone) ──
-    const handle=row.querySelector('.rn');
-    if(!handle)return;
-    handle.addEventListener('touchstart',e=>{
-      touchDragEl=row;
-      touchStartY=e.touches[0].clientY;
-      touchStartIdx=getRows().indexOf(row);
-      row.style.opacity='0.5';
-      e.stopPropagation();
-    },{passive:true});
-
-    handle.addEventListener('touchmove',e=>{
-      if(!touchDragEl)return;
-      e.preventDefault();
-      e.stopPropagation();
-      const y=e.touches[0].clientY;
-      getRows().forEach(r=>r.classList.remove('drag-over-top'));
-      // 현재 y 위치에 있는 row 찾기
-      const target=getRows().find(r=>{
-        const rect=r.getBoundingClientRect();
-        return y>=rect.top && y<=rect.bottom;
-      });
-      if(target&&target!==touchDragEl) target.classList.add('drag-over-top');
-    },{passive:false});
-
-    handle.addEventListener('touchend',e=>{
-      if(!touchDragEl)return;
-      touchDragEl.style.opacity='';
-      getRows().forEach(r=>r.classList.remove('drag-over-top'));
-      const y=e.changedTouches[0].clientY;
-      const target=getRows().find(r=>{
-        const rect=r.getBoundingClientRect();
-        return y>=rect.top && y<=rect.bottom;
-      });
-      if(target&&target!==touchDragEl){
-        reorder(touchDragEl.dataset.id, target.dataset.id);
-      }
-      touchDragEl=null;
+      const ids=getRows().map(r=>r.dataset.id);
+      const fi=ids.indexOf(dragSrc.dataset.id),ti=ids.indexOf(row.dataset.id);
+      if(fi<0||ti<0)return;
+      ids.splice(fi,1);ids.splice(ti,0,dragSrc.dataset.id);
+      ids.forEach((id,i)=>{const s=S.songs.find(s=>s.id===id);if(s){s.order=i;dbPut('songs',s);}});
+      renderContent();
     });
   });
-
-  function reorder(fromId, toId){
-    const ids=getRows().map(r=>r.dataset.id);
-    const fi=ids.indexOf(fromId), ti=ids.indexOf(toId);
-    if(fi<0||ti<0)return;
-    ids.splice(fi,1); ids.splice(ti,0,fromId);
-    ids.forEach((id,i)=>{
-      const s=S.songs.find(s=>s.id===id);
-      if(s){s.order=i;dbPut('songs',s);}
-    });
-    renderContent();
-  }
 }
+
+function moveRow(id, dir){
+  const list=getList();
+  const idx=list.findIndex(s=>s.id===id);
+  const newIdx=idx+dir;
+  if(newIdx<0||newIdx>=list.length)return;
+  // 두 곡의 order 값 교환
+  const a=list[idx], b=list[newIdx];
+  const tmpOrder=a.order??idx;
+  a.order=b.order??newIdx;
+  b.order=tmpOrder;
+  dbPut('songs',a);
+  dbPut('songs',b);
+  renderContent();
+}
+window.moveRow=moveRow;
 
 function renderGrid(list,area){
   const cards=list.map(s=>{const cur=s.id===S.curId;const pc=`pp-${(s.platform||'other').toLowerCase()}`;
