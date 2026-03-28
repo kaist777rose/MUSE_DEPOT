@@ -27,7 +27,7 @@
   --player-h: 88px;
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{height:100%;overflow:hidden;}
+html,body{height:100%;overflow:auto;}
 body{
   font-family:'DM Sans',sans-serif;
   font-weight:700;
@@ -39,7 +39,7 @@ body{
 }
 
 /* ─── LAYOUT ─── */
-.app{display:flex;flex:1;overflow:hidden;min-height:0;}
+.app{display:flex;flex:1;overflow:auto;min-height:0;}
 
 /* ─── SIDEBAR ─── */
 .sidebar{
@@ -48,7 +48,7 @@ body{
   border-right:2px solid var(--border2);
   display:flex;
   flex-direction:column;
-  overflow:hidden;
+  overflow:auto;
   flex-shrink:0;
 }
 .logo{
@@ -117,7 +117,7 @@ body{
 .pl-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
 
 /* ─── MAIN ─── */
-.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;}
+.main{flex:1;display:flex;flex-direction:column;overflow:auto;min-width:0;}
 
 /* toolbar */
 .toolbar{
@@ -512,12 +512,11 @@ body{
           <option value="duration-asc">짧은 순</option>
           <option value="liked-desc">좋아요 순</option>
         </select>
-        <label class="upload-btn" style="cursor:pointer;overflow:hidden;position:relative;">
-          ＋ 음악 추가
-          <input type="file" id="fileInput" accept="audio/*" multiple
-            onchange="handleFileInput(event)"
-            style="position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.01;cursor:pointer;font-size:16px;">
-        </label>
+        <input type="file" id="fileInput" multiple
+          onchange="handleFileInput(event)"
+          style="background:var(--accent3);color:#fff;border:none;border-radius:8px;
+          padding:0.44rem 0.95rem;font-size:0.83rem;font-weight:900;
+          font-family:'DM Sans',sans-serif;cursor:pointer;">
         </label>
       </div>
     </div>
@@ -678,12 +677,73 @@ body{
 
 <script>
 document.addEventListener('DOMContentLoaded', function(){
-const SK='musedepot_songs_v1', PK='musedepot_playlists_v1', SK2='musedepot_cfg_v1';
+const SK2='musedepot_cfg_v1';
 let S={songs:[],playlists:[],cfg:{vol:0.8,shuffle:false,repeat:'none',viewMode:'list',sortBy:'dateAdded',sortDir:'desc'},view:'all',curId:null,playing:false,search:'',editId:null,ctxId:null};
 let editTags=[];
+let db=null;
 
-function persist(){try{localStorage.setItem(SK,JSON.stringify(S.songs));localStorage.setItem(PK,JSON.stringify(S.playlists));localStorage.setItem(SK2,JSON.stringify(S.cfg));}catch(e){notify('⚠ 저장 공간 부족');}}
-function hydrate(){try{const s=localStorage.getItem(SK),p=localStorage.getItem(PK),c=localStorage.getItem(SK2);if(s)S.songs=JSON.parse(s);if(p)S.playlists=JSON.parse(p);if(c)S.cfg={...S.cfg,...JSON.parse(c)};}catch(e){}}
+// ── IndexedDB 초기화 ──
+function initDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open('MuseDepot',2);
+    req.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains('songs')) d.createObjectStore('songs',{keyPath:'id'});
+      if(!d.objectStoreNames.contains('playlists')) d.createObjectStore('playlists',{keyPath:'id'});
+    };
+    req.onsuccess=e=>{db=e.target.result;resolve();};
+    req.onerror=e=>{console.error('IndexedDB 오류',e);reject(e);};
+  });
+}
+
+// ── DB 읽기/쓰기 ──
+function dbGetAll(store){
+  return new Promise(resolve=>{
+    const tx=db.transaction(store,'readonly');
+    const req=tx.objectStore(store).getAll();
+    req.onsuccess=()=>resolve(req.result||[]);
+    req.onerror=()=>resolve([]);
+  });
+}
+function dbPut(store,obj){
+  return new Promise(resolve=>{
+    const tx=db.transaction(store,'readwrite');
+    tx.objectStore(store).put(obj);
+    tx.oncomplete=resolve;
+    tx.onerror=resolve;
+  });
+}
+function dbDelete(store,id){
+  return new Promise(resolve=>{
+    const tx=db.transaction(store,'readwrite');
+    tx.objectStore(store).delete(id);
+    tx.oncomplete=resolve;
+    tx.onerror=resolve;
+  });
+}
+function dbClear(store){
+  return new Promise(resolve=>{
+    const tx=db.transaction(store,'readwrite');
+    tx.objectStore(store).clear();
+    tx.oncomplete=resolve;
+  });
+}
+
+// ── persist / hydrate ──
+async function persist(){
+  // 곡 전체 저장
+  for(const song of S.songs) await dbPut('songs',song);
+  // 플레이리스트 전체 저장
+  await dbClear('playlists');
+  for(const pl of S.playlists) await dbPut('playlists',pl);
+  // 설정은 localStorage (작아서 괜찮음)
+  try{localStorage.setItem(SK2,JSON.stringify(S.cfg));}catch(e){}
+}
+async function hydrate(){
+  S.songs=await dbGetAll('songs');
+  S.playlists=await dbGetAll('playlists');
+  try{const c=localStorage.getItem(SK2);if(c)S.cfg={...S.cfg,...JSON.parse(c)};}catch(e){}
+}
 
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2);}
 function fmt(s){if(!s||isNaN(s))return'0:00';const m=Math.floor(s/60),sec=Math.floor(s%60);return`${m}:${sec.toString().padStart(2,'0')}`;}
@@ -777,8 +837,11 @@ const audio=document.getElementById('audioEl');
 function playSong(id){
   const song=S.songs.find(s=>s.id===id);if(!song)return;
   if(S.curId===id){togglePlay();return;}
-  S.curId=id;audio.src=song.url;audio.volume=S.cfg.vol;
-  audio.play().then(()=>{S.playing=true;song.plays=(song.plays||0)+1;persist();updatePlayerUI();renderContent();}).catch(e=>notify('재생 오류: '+e.message));
+  if(!song.blobUrl&&song.fileData){
+    song.blobUrl=URL.createObjectURL(new Blob([song.fileData],{type:song.fileType||'audio/mpeg'}));
+  }
+  S.curId=id;audio.src=song.blobUrl||'';audio.volume=S.cfg.vol;
+  audio.play().then(()=>{S.playing=true;song.plays=(song.plays||0)+1;dbPut('songs',song);updatePlayerUI();renderContent();}).catch(e=>notify('재생 오류: '+e.message));
 }
 function togglePlay(){if(!S.curId)return;if(S.playing){audio.pause();S.playing=false;}else{audio.play();S.playing=true;}updatePlayerUI();renderContent();}
 function prevSong(){const list=getList();if(!list.length)return;const idx=list.findIndex(s=>s.id===S.curId);playSong(list[(idx-1+list.length)%list.length].id);}
@@ -789,12 +852,12 @@ function nextSong(){
   if(S.cfg.repeat==='none'&&idx===list.length-1){S.playing=false;updatePlayerUI();renderContent();return;}
   playSong(list[(idx+1)%list.length].id);
 }
-function toggleShuffle(){S.cfg.shuffle=!S.cfg.shuffle;persist();updatePlayerUI();}
-function toggleRepeat(){const c=['none','all','one'],i=c.indexOf(S.cfg.repeat);S.cfg.repeat=c[(i+1)%c.length];persist();updatePlayerUI();}
+function toggleShuffle(){S.cfg.shuffle=!S.cfg.shuffle;try{localStorage.setItem(SK2,JSON.stringify(S.cfg));}catch(e){}updatePlayerUI();}
+function toggleRepeat(){const c=['none','all','one'],i=c.indexOf(S.cfg.repeat);S.cfg.repeat=c[(i+1)%c.length];try{localStorage.setItem(SK2,JSON.stringify(S.cfg));}catch(e){}updatePlayerUI();}
 function toggleMute(){audio.muted=!audio.muted;document.querySelector('.vol-ico').textContent=audio.muted?'🔇':'🔊';}
-function setVol(e){const r=e.currentTarget.getBoundingClientRect(),p=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));audio.volume=p;S.cfg.vol=p;document.getElementById('volFill').style.width=(p*100)+'%';persist();}
+function setVol(e){const r=e.currentTarget.getBoundingClientRect(),p=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));audio.volume=p;S.cfg.vol=p;document.getElementById('volFill').style.width=(p*100)+'%';try{localStorage.setItem(SK2,JSON.stringify(S.cfg));}catch(e){}}
 function seekTo(e){const r=e.currentTarget.getBoundingClientRect(),p=(e.clientX-r.left)/r.width;if(audio.duration)audio.currentTime=audio.duration*p;}
-function toggleLike(id){const s=S.songs.find(s=>s.id===id);if(s){s.liked=!s.liked;persist();renderContent();if(id===S.curId)updatePlayerUI();}}
+function toggleLike(id){const s=S.songs.find(s=>s.id===id);if(s){s.liked=!s.liked;dbPut('songs',s);renderContent();if(id===S.curId)updatePlayerUI();}}
 function toggleLikeCurrent(){if(S.curId)toggleLike(S.curId);}
 
 audio.ontimeupdate=()=>{const p=audio.duration?(audio.currentTime/audio.duration)*100:0;document.getElementById('progFill').style.width=p+'%';document.getElementById('tCur').textContent=fmt(audio.currentTime);document.getElementById('tTot').textContent=fmt(audio.duration);};
@@ -812,8 +875,42 @@ function handleFileInput(e){processFiles(Array.from(e.target.files));e.target.va
 function processFiles(files){
   const af=files.filter(f=>f.type.startsWith('audio/')||f.name.match(/\.(mp3|wav|m4a|ogg|flac)$/i));
   if(!af.length){notify('오디오 파일이 없습니다.');return;}
-  notify(`${af.length}개 파일 업로드 중...`);
-  af.forEach(file=>{const r=new FileReader();r.onload=ev=>{const song={id:uid(),url:ev.target.result,title:file.name.replace(/\.[^/.]+$/,''),artist:'',album:'',genre:'',platform:'Suno',tags:[],thumbnail:null,duration:0,plays:0,liked:false,dateAdded:Date.now(),youtubeTitle:'',youtubeDescription:'',lyrics:''};const tmp=new Audio();tmp.src=ev.target.result;tmp.onloadedmetadata=()=>{song.duration=tmp.duration;persist();renderContent();};S.songs.push(song);persist();renderContent();};r.readAsDataURL(file);});
+  notify(`${af.length}개 파일 저장 중...`);
+  let done=0;
+  af.forEach(file=>{
+    const reader=new FileReader();
+    reader.onload=async ev=>{
+      const fileData=ev.target.result; // ArrayBuffer
+      const blobUrl=URL.createObjectURL(new Blob([fileData],{type:file.type||'audio/mpeg'}));
+      const song={
+        id:uid(),fileData:fileData,fileType:file.type||'audio/mpeg',
+        blobUrl:blobUrl,
+        title:file.name.replace(/\.[^/.]+$/,''),
+        artist:'',album:'',genre:'',platform:'Suno',
+        tags:[],thumbnail:null,duration:0,plays:0,liked:false,
+        dateAdded:Date.now(),youtubeTitle:'',youtubeDescription:'',lyrics:''
+      };
+      // 재생시간 측정
+      const tmp=new Audio();
+      tmp.src=blobUrl;
+      tmp.onloadedmetadata=async()=>{
+        song.duration=tmp.duration;
+        await dbPut('songs',song);
+        S.songs.push(song);
+        done++;
+        if(done===af.length) notify(`✓ ${done}곡 저장 완료!`);
+        renderContent();
+      };
+      tmp.onerror=async()=>{
+        await dbPut('songs',song);
+        S.songs.push(song);
+        done++;
+        if(done===af.length) notify(`✓ ${done}곡 저장 완료!`);
+        renderContent();
+      };
+    };
+    reader.readAsArrayBuffer(file);
+  });
 }
 
 function openEdit(id){
@@ -830,8 +927,10 @@ function onThumbChange(e){const f=e.target.files[0];if(f)document.getElementById
 function saveEdit(){
   const s=S.songs.find(s=>s.id===S.editId);if(!s)return;
   s.title=document.getElementById('eTitle').value;s.artist=document.getElementById('eArtist').value;s.album=document.getElementById('eAlbum').value;s.genre=document.getElementById('eGenre').value;s.platform=document.getElementById('ePlatform').value;s.tags=[...editTags];s.youtubeTitle=document.getElementById('eYtTitle').value;s.youtubeDescription=document.getElementById('eYtDesc').value;s.lyrics=document.getElementById('eLyrics').value;
-  const tf=document.getElementById('eThumb').files[0];if(tf){const r=new FileReader();r.onload=ev=>{s.thumbnail=ev.target.result;persist();renderContent();if(s.id===S.curId)updatePlayerUI();};r.readAsDataURL(tf);}
-  persist();renderContent();if(s.id===S.curId)updatePlayerUI();closeModal('editModal');notify('✓ 저장 완료');
+  const tf=document.getElementById('eThumb').files[0];
+  if(tf){const r=new FileReader();r.onload=ev=>{s.thumbnail=ev.target.result;dbPut('songs',s);renderContent();if(s.id===S.curId)updatePlayerUI();};r.readAsDataURL(tf);}
+  else{dbPut('songs',s);}
+  renderContent();if(s.id===S.curId)updatePlayerUI();closeModal('editModal');notify('✓ 저장 완료');
 }
 
 async function genAI(){
@@ -861,12 +960,12 @@ document.addEventListener('click',closeCtx);
 function ctx_play(){if(S.ctxId)playSong(S.ctxId);closeCtx();}
 function ctx_edit(){if(S.ctxId)openEdit(S.ctxId);closeCtx();}
 function ctx_like(){if(S.ctxId)toggleLike(S.ctxId);closeCtx();}
-function ctx_del(){if(!S.ctxId)return;if(confirm('이 곡을 삭제하시겠습니까?')){S.songs=S.songs.filter(s=>s.id!==S.ctxId);S.playlists.forEach(pl=>{pl.songIds=pl.songIds.filter(id=>id!==S.ctxId);});if(S.curId===S.ctxId){S.curId=null;S.playing=false;audio.pause();updatePlayerUI();}persist();renderContent();notify('🗑 삭제 완료');}closeCtx();}
+function ctx_del(){if(!S.ctxId)return;if(confirm('이 곡을 삭제하시겠습니까?')){dbDelete('songs',S.ctxId);S.songs=S.songs.filter(s=>s.id!==S.ctxId);S.playlists.forEach(pl=>{pl.songIds=pl.songIds.filter(id=>id!==S.ctxId);dbPut('playlists',pl);});if(S.curId===S.ctxId){S.curId=null;S.playing=false;audio.pause();updatePlayerUI();}renderContent();notify('🗑 삭제 완료');}closeCtx();}
 function ctx_addPl(){if(!S.ctxId)return;const list=document.getElementById('plModalList');if(!S.playlists.length){list.innerHTML='<p style="color:var(--text3);padding:1rem;text-align:center;font-weight:800;">플레이리스트가 없습니다.<br>사이드바의 + 버튼으로 만드세요.</p>';}else{list.innerHTML=S.playlists.map(pl=>`<div class="s-item" onclick="addToPl('${pl.id}')"><div class="pl-dot" style="background:${pl.color}"></div>${esc(pl.name)}<span class="s-count">${pl.songIds.length}</span></div>`).join('');}openModal('plModal');closeCtx();}
-function addToPl(plId){const pl=S.playlists.find(p=>p.id===plId);if(pl&&S.ctxId&&!pl.songIds.includes(S.ctxId)){pl.songIds.push(S.ctxId);persist();renderContent();notify('✓ 플레이리스트에 추가됨');}closeModal('plModal');}
+function addToPl(plId){const pl=S.playlists.find(p=>p.id===plId);if(pl&&S.ctxId&&!pl.songIds.includes(S.ctxId)){pl.songIds.push(S.ctxId);dbPut('playlists',pl);renderContent();notify('✓ 플레이리스트에 추가됨');}closeModal('plModal');}
 
 const PLC=['#1a6fff','#e8005a','#7c3aed','#0a8a5c','#f97316','#f59e0b','#3b82f6'];
-function createPlaylist(){const name=prompt('플레이리스트 이름:');if(!name?.trim())return;S.playlists.push({id:uid(),name:name.trim(),songIds:[],color:PLC[Math.floor(Math.random()*PLC.length)],dateCreated:Date.now()});persist();renderContent();}
+function createPlaylist(){const name=prompt('플레이리스트 이름:');if(!name?.trim())return;const pl={id:uid(),name:name.trim(),songIds:[],color:PLC[Math.floor(Math.random()*PLC.length)],dateCreated:Date.now()};S.playlists.push(pl);dbPut('playlists',pl);renderContent();}
 
 let dc=0;
 document.addEventListener('dragenter',e=>{e.preventDefault();dc++;document.getElementById('dragOverlay').classList.add('active');});
@@ -889,7 +988,25 @@ document.addEventListener('keydown',e=>{
   if(e.code==='KeyS'){e.preventDefault();toggleShuffle();}
 });
 
-hydrate();setViewMode(S.cfg.viewMode);document.getElementById('volFill').style.width=(S.cfg.vol*100)+'%';audio.volume=S.cfg.vol;renderContent();updatePlayerUI();
+// ── 앱 시작: IndexedDB 초기화 후 로드 ──
+initDB().then(async()=>{
+  await hydrate();
+  // 페이지 로드 후 blobUrl 재생성
+  S.songs.forEach(s=>{
+    if(s.fileData && !s.blobUrl){
+      s.blobUrl=URL.createObjectURL(new Blob([s.fileData],{type:s.fileType||'audio/mpeg'}));
+    }
+  });
+  setViewMode(S.cfg.viewMode);
+  document.getElementById('volFill').style.width=(S.cfg.vol*100)+'%';
+  audio.volume=S.cfg.vol;
+  renderContent();
+  updatePlayerUI();
+  notify('🎵 보관함 로드 완료 — '+S.songs.length+'곡');
+}).catch(e=>{
+  notify('⚠ DB 오류, 새로고침 해주세요');
+  console.error(e);
+});
 
 // HTML onclick에서 접근 가능하도록 전역 노출
 window.setView=setView;window.setViewMode=setViewMode;window.onSort=onSort;
