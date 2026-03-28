@@ -876,45 +876,85 @@ function deleteSong(id){
 
 let dragSrc=null;
 function initDragSort(area){
-  const rows=()=>area.querySelectorAll('.song-row');
-  rows().forEach(row=>{
-    // 마우스 드래그
+  const getRows=()=>[...area.querySelectorAll('.song-row')];
+  let touchDragEl=null, touchClone=null, touchStartY=0, touchStartIdx=-1;
+
+  getRows().forEach((row,idx)=>{
+    // ── 마우스 드래그 (데스크톱) ──
+    row.draggable=true;
     row.addEventListener('dragstart',e=>{
-      dragSrc=row;
-      e.dataTransfer.effectAllowed='move';
-      e.dataTransfer.setData('text/plain',row.dataset.id);
+      dragSrc=row;e.dataTransfer.effectAllowed='move';
       setTimeout(()=>{if(dragSrc)dragSrc.style.opacity='0.4';},0);
     });
     row.addEventListener('dragend',()=>{
-      if(dragSrc)dragSrc.style.opacity='';
-      dragSrc=null;
-      rows().forEach(r=>r.classList.remove('drag-over-top'));
+      if(dragSrc)dragSrc.style.opacity='';dragSrc=null;
+      getRows().forEach(r=>r.classList.remove('drag-over-top'));
     });
     row.addEventListener('dragover',e=>{
-      e.preventDefault();e.dataTransfer.dropEffect='move';
-      rows().forEach(r=>r.classList.remove('drag-over-top'));
+      e.preventDefault();
+      getRows().forEach(r=>r.classList.remove('drag-over-top'));
       row.classList.add('drag-over-top');
     });
-    row.addEventListener('dragleave',()=>{
-      row.classList.remove('drag-over-top');
-    });
+    row.addEventListener('dragleave',()=>row.classList.remove('drag-over-top'));
     row.addEventListener('drop',e=>{
       e.preventDefault();
-      rows().forEach(r=>r.classList.remove('drag-over-top'));
+      getRows().forEach(r=>r.classList.remove('drag-over-top'));
       if(!dragSrc||dragSrc===row)return;
-      const allIds=[...rows()].map(r=>r.dataset.id);
-      const fromIdx=allIds.indexOf(dragSrc.dataset.id);
-      const toIdx=allIds.indexOf(row.dataset.id);
-      if(fromIdx<0||toIdx<0)return;
-      allIds.splice(fromIdx,1);
-      allIds.splice(toIdx,0,dragSrc.dataset.id);
-      allIds.forEach((id,idx)=>{
-        const song=S.songs.find(s=>s.id===id);
-        if(song){song.order=idx;dbPut('songs',song);}
+      reorder(dragSrc.dataset.id, row.dataset.id);
+    });
+
+    // ── 터치 드래그 (iPad/iPhone) ──
+    const handle=row.querySelector('.rn');
+    if(!handle)return;
+    handle.addEventListener('touchstart',e=>{
+      touchDragEl=row;
+      touchStartY=e.touches[0].clientY;
+      touchStartIdx=getRows().indexOf(row);
+      row.style.opacity='0.5';
+      e.stopPropagation();
+    },{passive:true});
+
+    handle.addEventListener('touchmove',e=>{
+      if(!touchDragEl)return;
+      e.preventDefault();
+      e.stopPropagation();
+      const y=e.touches[0].clientY;
+      getRows().forEach(r=>r.classList.remove('drag-over-top'));
+      // 현재 y 위치에 있는 row 찾기
+      const target=getRows().find(r=>{
+        const rect=r.getBoundingClientRect();
+        return y>=rect.top && y<=rect.bottom;
       });
-      renderContent();
+      if(target&&target!==touchDragEl) target.classList.add('drag-over-top');
+    },{passive:false});
+
+    handle.addEventListener('touchend',e=>{
+      if(!touchDragEl)return;
+      touchDragEl.style.opacity='';
+      getRows().forEach(r=>r.classList.remove('drag-over-top'));
+      const y=e.changedTouches[0].clientY;
+      const target=getRows().find(r=>{
+        const rect=r.getBoundingClientRect();
+        return y>=rect.top && y<=rect.bottom;
+      });
+      if(target&&target!==touchDragEl){
+        reorder(touchDragEl.dataset.id, target.dataset.id);
+      }
+      touchDragEl=null;
     });
   });
+
+  function reorder(fromId, toId){
+    const ids=getRows().map(r=>r.dataset.id);
+    const fi=ids.indexOf(fromId), ti=ids.indexOf(toId);
+    if(fi<0||ti<0)return;
+    ids.splice(fi,1); ids.splice(ti,0,fromId);
+    ids.forEach((id,i)=>{
+      const s=S.songs.find(s=>s.id===id);
+      if(s){s.order=i;dbPut('songs',s);}
+    });
+    renderContent();
+  }
 }
 
 function renderGrid(list,area){
@@ -1103,10 +1143,13 @@ document.addEventListener('keydown',e=>{
 // ── 앱 시작: IndexedDB 초기화 후 로드 ──
 initDB().then(async()=>{
   await hydrate();
-  // 페이지 로드 후 blobUrl 재생성
+  // 항상 blobUrl 재생성 (이전 세션 URL은 무효이므로)
   S.songs.forEach(s=>{
-    if(s.fileData && !s.blobUrl){
-      s.blobUrl=URL.createObjectURL(new Blob([s.fileData],{type:s.fileType||'audio/mpeg'}));
+    s.blobUrl=null; // 기존 무효 URL 제거
+    if(s.fileData){
+      try{
+        s.blobUrl=URL.createObjectURL(new Blob([s.fileData],{type:s.fileType||'audio/mpeg'}));
+      }catch(e){console.warn('blobUrl 생성 실패',s.title,e);}
     }
   });
   setViewMode(S.cfg.viewMode);
