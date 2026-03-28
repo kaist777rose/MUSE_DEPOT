@@ -510,6 +510,7 @@ body{
         <select class="sort-sel" id="sortSel" onchange="onSort()">
           <option value="manual-asc">✦ 내 순서</option>
           <option value="dateAdded-desc">최신 추가순</option>
+          <option value="dateAdded-asc">오래된 순</option>
           <option value="title-asc">제목 A→Z</option>
           <option value="artist-asc">아티스트 A→Z</option>
           <option value="plays-desc">재생 많은 순</option>
@@ -800,17 +801,17 @@ function renderList(list,area){
     const pc=`pp-${(s.platform||'other').toLowerCase()}`;
     const memo=[s.genre,(s.tags||[]).join(', ')].filter(Boolean).join(' · ');
     return`<div class="song-row ${cur?'playing':''}" data-id="${s.id}"
-      ondblclick="playSong('${s.id}')" oncontextmenu="openCtx(event,'${s.id}')"
+      onclick="playSong('${s.id}')" oncontextmenu="openCtx(event,'${s.id}')"
       ${isManual?'draggable="true"':''}>
       <div class="rn" style="${isManual?'cursor:grab;font-size:1.2rem;color:var(--text3);user-select:none;':''}">
-        ${isManual?'⠿':(cur&&S.playing?'▶':i+1)}
+        ${isManual?'⠿':(cur&&S.playing?'⏸':i+1)}
       </div>
       <div class="rthumb">${s.thumbnail?`<img src="${esc(s.thumbnail)}" alt="">`:'♪'}</div>
-      <div class="rinfo">
+      <div class="rinfo" onclick="event.stopPropagation();openEdit('${s.id}')">
         <div class="row-title">${esc(s.title||'제목 없음')}</div>
         <div class="row-artist">${esc(s.artist||'—')}</div>
       </div>
-      <div style="padding:0 0.3rem;"><span class="ppill ${pc}">${esc(s.platform||'Other')}</span></div>
+      <div style="padding:0 0.3rem;" onclick="event.stopPropagation();"><span class="ppill ${pc}">${esc(s.platform||'Other')}</span></div>
       <div class="row-memo" onclick="event.stopPropagation();quickMemo('${s.id}',this)" title="탭하여 메모 편집">${esc(memo)||'<span style="color:var(--text3);font-style:italic;">메모 추가...</span>'}</div>
       <div class="row-dur">${fmt(s.duration)}</div>
       <div class="row-plays">${s.plays||0}</div>
@@ -959,7 +960,7 @@ function initDragSort(area){
 
 function renderGrid(list,area){
   const cards=list.map(s=>{const cur=s.id===S.curId;const pc=`pp-${(s.platform||'other').toLowerCase()}`;
-    return`<div class="g-card ${cur?'playing':''}" ondblclick="playSong('${s.id}')" oncontextmenu="openCtx(event,'${s.id}')">
+    return`<div class="g-card ${cur?'playing':''}" onclick="playSong('${s.id}')" oncontextmenu="openCtx(event,'${s.id}')">
       <div class="g-thumb">${s.thumbnail?`<img src="${esc(s.thumbnail)}" alt="">`:'♪'}<div class="g-overlay"><div class="g-play">${cur&&S.playing?'⏸':'▶'}</div></div></div>
       <div class="g-info"><div class="g-title">${esc(s.title||'제목 없음')}</div><div class="g-artist">${esc(s.artist||'—')}</div>
       <div class="g-foot"><span class="ppill ${pc}" style="font-size:0.6rem;">${esc(s.platform||'Other')}</span><span class="g-plays">${s.plays||0} plays</span></div></div>
