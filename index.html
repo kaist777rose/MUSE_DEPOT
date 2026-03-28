@@ -168,14 +168,14 @@ body{
 
 /* ─── LIST VIEW ─── */
 .list-header{
-  display:grid;grid-template-columns:56px 44px 1fr 100px 140px 58px 44px 34px;
+  display:grid;grid-template-columns:60px 44px 1fr 100px 140px 58px 44px 34px;
   align-items:center;padding:0.45rem 1.3rem;border-bottom:2px solid var(--border2);
   background:var(--surface);position:sticky;top:0;z-index:10;
 }
 .ch{font-size:0.62rem;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);padding:0.2rem 0.25rem;user-select:none;}
 .song-row{
-  display:grid;grid-template-columns:56px 44px 1fr 100px 140px 58px 44px 34px;
-  align-items:center;padding:0 1.3rem;height:72px;border-bottom:1px solid var(--border);
+  display:grid;grid-template-columns:60px 44px 1fr 100px 140px 58px 44px 34px;
+  align-items:center;padding:0 1.3rem;height:78px;border-bottom:1px solid var(--border);
   cursor:pointer;transition:background 0.1s;
 }
 .song-row:hover{background:var(--surface);}
@@ -183,20 +183,21 @@ body{
 .song-row.playing .row-title{color:var(--accent3);font-weight:900;}
 .rn{font-family:'JetBrains Mono',monospace;font-size:0.73rem;font-weight:700;color:var(--text3);text-align:center;display:flex;align-items:center;justify-content:center;}
 .song-row.playing .rn{color:var(--accent3);}
-.reorder-cell{display:flex;flex-direction:column;align-items:center;gap:3px;}
+.reorder-cell{display:flex;flex-direction:column;align-items:center;gap:4px;}
 .reorder-btn{
-  background:var(--surface);border:2px solid var(--border2);cursor:pointer;
-  font-size:0.85rem;color:var(--text2);padding:6px 12px;line-height:1;font-weight:900;
-  border-radius:6px;transition:all 0.12s;
+  background:var(--surface);border:2px solid var(--border2);
+  cursor:pointer;font-size:1rem;color:var(--text2);
+  padding:5px 14px;line-height:1;font-weight:900;
+  border-radius:6px;
   -webkit-tap-highlight-color:rgba(124,58,237,0.3);
   -webkit-touch-callout:none;
+  -webkit-user-select:none;
   touch-action:manipulation;
   user-select:none;
-  min-width:36px;min-height:32px;
+  min-width:40px;min-height:34px;
   display:flex;align-items:center;justify-content:center;
 }
-.reorder-btn:hover{color:var(--accent3);background:rgba(124,58,237,0.1);border-color:var(--accent3);}
-.reorder-btn:active{transform:scale(0.92);background:rgba(124,58,237,0.18);color:var(--accent3);border-color:var(--accent3);}
+.reorder-btn:active{background:rgba(124,58,237,0.2);color:var(--accent3);border-color:var(--accent3);transform:scale(0.93);}
 .rthumb{width:36px;height:36px;border-radius:6px;background:var(--surface3);display:flex;align-items:center;justify-content:center;font-size:0.95rem;overflow:hidden;border:1px solid var(--border);}
 .rthumb img{width:100%;height:100%;object-fit:cover;}
 .rinfo{overflow:hidden;padding:0 0.65rem;}
@@ -985,14 +986,17 @@ function renderContent(){
 
 function renderList(list,area){
   const isM=S.cfg.sortBy==='manual';
-  const isTouch='ontouchstart' in window;
   const rows=list.map((s,i)=>{
     const cur=s.id===S.curId,pc='pp-'+(s.platform||'other').toLowerCase();
     const memo=[s.genre,(s.tags||[]).join(', ')].filter(Boolean).join(' · ');
     const locIcon=s.fsaFileName?'<span title="로컬 폴더" style="font-size:0.6rem;">📂</span>':'';
-    // 터치 기기에서는 draggable 사용하지 않음
-    return`<div class="song-row ${cur?'playing':''}" data-id="${s.id}" ${isM&&!isTouch?'draggable="true"':''}>
-      <div class="rn">${isM?`<div class="reorder-cell"><button type="button" class="reorder-btn" data-move="-1" data-sid="${s.id}">▲</button><button type="button" class="reorder-btn" data-move="1" data-sid="${s.id}">▼</button></div>`:(cur&&S.playing?'⏸':i+1)}</div>
+    // 순서 버튼: ontouchstart + onclick 이중 처리, div 사용 (button은 iOS에서 터치 문제)
+    const orderCell=isM?`<div class="reorder-cell">
+      <div class="reorder-btn" ontouchstart="event.preventDefault();event.stopPropagation();window._mv('${s.id}',-1)" onclick="event.preventDefault();event.stopPropagation();window._mv('${s.id}',-1)">▲</div>
+      <div class="reorder-btn" ontouchstart="event.preventDefault();event.stopPropagation();window._mv('${s.id}',1)" onclick="event.preventDefault();event.stopPropagation();window._mv('${s.id}',1)">▼</div>
+    </div>`:(cur&&S.playing?'⏸':i+1);
+    return`<div class="song-row ${cur?'playing':''}" data-id="${s.id}">
+      <div class="rn">${orderCell}</div>
       <div class="rthumb">${s.thumbnail?`<img src="${esc(s.thumbnail)}">`:'♪'}</div>
       <div class="rinfo" data-edit="${s.id}"><div class="row-title">${locIcon}${esc(s.title||'제목 없음')}</div><div class="row-artist">${esc(s.artist||'—')}</div></div>
       <div style="padding:0 0.3rem;"><span class="ppill ${pc}">${esc(s.platform||'Other')}</span></div>
@@ -1003,29 +1007,6 @@ function renderList(list,area){
     </div>`;
   }).join('');
   area.innerHTML=`<div class="list-header"><div class="ch">${isM?'↕':'#'}</div><div class="ch"></div><div class="ch">제목</div><div class="ch">플랫폼</div><div class="ch">메모</div><div class="ch">시간</div><div class="ch">재생</div><div class="ch"></div></div>${rows}`;
-
-  // 순서 버튼에 직접 이벤트 바인딩 (Safari 터치 호환)
-  if(isM){
-    area.querySelectorAll('.reorder-btn').forEach(btn=>{
-      function doMove(e){
-        e.preventDefault();
-        e.stopPropagation();
-        const sid=btn.getAttribute('data-sid');
-        const dir=parseInt(btn.getAttribute('data-move'));
-        moveRow(sid,dir);
-      }
-      btn.addEventListener('click',doMove);
-      btn.addEventListener('touchend',function(e){
-        e.preventDefault();
-        e.stopPropagation();
-        const sid=btn.getAttribute('data-sid');
-        const dir=parseInt(btn.getAttribute('data-move'));
-        moveRow(sid,dir);
-      },{passive:false});
-    });
-    // 데스크톱 드래그 (터치 기기 제외)
-    if(!isTouch) initDragSort(area);
-  }
 }
 
 function renderGrid(list,area){
@@ -1060,16 +1041,21 @@ function updateStats(list){
 //  DRAG REORDER
 // ══════════════════════════════════════════
 let dragSrc=null;
+let _mvLock=false;
 function moveRow(id,dir){
+  if(_mvLock)return;
+  _mvLock=true;
   const list=getList();
-  // 먼저 전체 리스트에 순차적 order 값 부여 (빈 값 방지)
   list.forEach((s,i)=>{if(s.order==null)s.order=i;});
   const idx=list.findIndex(s=>s.id===id),ni=idx+dir;
-  if(ni<0||ni>=list.length)return;
+  if(ni<0||ni>=list.length){_mvLock=false;return;}
   const a=list[idx],b=list[ni];
   const tmpOrder=a.order; a.order=b.order; b.order=tmpOrder;
-  dbPut('songs',a);dbPut('songs',b);renderContent();
+  dbPut('songs',a);dbPut('songs',b);
+  renderContent();
+  setTimeout(()=>{_mvLock=false;},300);
 }
+window._mv=moveRow;
 window._moveRow=moveRow;
 function initDragSort(area){
   const rows=()=>[...area.querySelectorAll('.song-row')];
@@ -1336,7 +1322,8 @@ document.getElementById('volBar').addEventListener('click',e=>{const r=e.current
 // Content area delegation
 const contentArea=document.getElementById('contentArea');
 function handleContentAction(e){
-  // 순서 버튼은 직접 바인딩으로 처리 — 여기서 무시
+  // 순서 버튼/셀 클릭은 인라인 핸들러로 처리 — 무시
+  if(e.target.closest('.reorder-cell'))return;
   if(e.target.closest('.reorder-btn'))return;
   const ed=e.target.closest('[data-edit]');if(ed){e.stopPropagation();openEdit(ed.dataset.edit);return;}
   const mm=e.target.closest('[data-memo]');if(mm){e.stopPropagation();quickMemo(mm.dataset.memo,mm);return;}
