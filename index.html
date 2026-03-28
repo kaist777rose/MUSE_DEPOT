@@ -1046,12 +1046,16 @@ function moveRow(id,dir){
   if(_mvLock)return;
   _mvLock=true;
   const list=getList();
-  list.forEach((s,i)=>{if(s.order==null)s.order=i;});
+  // 핵심 수정: 항상 전체 리스트에 순차 order 부여 (중복값 제거)
+  list.forEach((s,i)=>{s.order=i;});
   const idx=list.findIndex(s=>s.id===id),ni=idx+dir;
   if(ni<0||ni>=list.length){_mvLock=false;return;}
-  const a=list[idx],b=list[ni];
-  const tmpOrder=a.order; a.order=b.order; b.order=tmpOrder;
-  dbPut('songs',a);dbPut('songs',b);
+  // 교환
+  list[idx].order=ni;
+  list[ni].order=idx;
+  // 두 곡 모두 DB 저장
+  dbPut('songs',list[idx]);
+  dbPut('songs',list[ni]);
   renderContent();
   setTimeout(()=>{_mvLock=false;},300);
 }
@@ -1385,12 +1389,9 @@ document.addEventListener('drop',e=>{e.preventDefault();dc=0;document.getElement
 // ══════════════════════════════════════════
 initDB().then(async()=>{
   await hydrate();
-  // order 값 정규화 — 빈 값이 있으면 순차 부여
-  let needsOrderFix=S.songs.some(s=>s.order==null);
-  if(needsOrderFix){
-    S.songs.sort((a,b)=>(a.order??999999)-(b.order??999999)||(a.dateAdded||0)-(b.dateAdded||0));
-    S.songs.forEach((s,i)=>{s.order=i;dbPut('songs',s);});
-  }
+  // order 값 항상 정규화 — 중복/빈 값 완전 제거
+  S.songs.sort((a,b)=>(a.order??999999)-(b.order??999999)||(a.dateAdded||0)-(b.dateAdded||0));
+  S.songs.forEach((s,i)=>{s.order=i;dbPut('songs',s);});
   S.songs.forEach(s=>{
     s.blobUrl=null;
     if(s.fileData){try{s.blobUrl=URL.createObjectURL(new Blob([s.fileData],{type:s.fileType||'audio/mpeg'}));}catch(e){}}
