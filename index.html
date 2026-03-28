@@ -53,16 +53,16 @@ body{
 }
 .logo{
   font-family:'Syne',sans-serif;
-  font-size:1rem;
+  font-size:1.35rem;
   font-weight:800;
   letter-spacing:2px;
-  padding:1rem 1.1rem 0.7rem;
+  padding:1.3rem 1.1rem 0.9rem;
   color:var(--accent3);
   flex-shrink:0;
   border-bottom:2px solid var(--border);
 }
 .logo span{
-  font-size:0.52rem;display:block;letter-spacing:4px;
+  font-size:0.58rem;display:block;letter-spacing:4px;
   color:var(--text3);font-weight:800;margin-top:2px;
   text-transform:uppercase;
 }
@@ -179,7 +179,7 @@ body{
 /* ─── LIST VIEW ─── */
 .list-header{
   display:grid;
-  grid-template-columns: 36px 44px 1fr 140px 60px 50px 34px;
+  grid-template-columns: 36px 44px 1fr 120px 140px 58px 44px 34px;
   align-items:center;padding:0.45rem 1.3rem;
   border-bottom:2px solid var(--border2);
   background:var(--surface);position:sticky;top:0;z-index:10;
@@ -191,10 +191,9 @@ body{
   display:flex;align-items:center;gap:0.2rem;user-select:none;
 }
 .ch:hover{color:var(--accent3);}
-.ch.sorted{color:var(--accent3);}
 .song-row{
   display:grid;
-  grid-template-columns: 36px 44px 1fr 140px 60px 50px 34px;
+  grid-template-columns: 36px 44px 1fr 120px 140px 58px 44px 34px;
   align-items:center;padding:0 1.3rem;
   height:58px;border-bottom:1px solid var(--border);
   cursor:pointer;transition:background 0.1s;
@@ -227,6 +226,10 @@ body{
 .row-plays{font-family:'JetBrains Mono',monospace;font-size:0.74rem;font-weight:700;color:var(--text3);text-align:center;}
 .row-like{text-align:center;font-size:1rem;color:var(--text3);cursor:pointer;transition:color 0.2s;}
 .row-like:hover,.row-like.liked{color:var(--accent2);}
+.row-memo{font-size:0.73rem;font-weight:700;color:var(--text3);padding:0 0.4rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.row-del{text-align:center;font-size:0.88rem;color:var(--text3);cursor:pointer;transition:color 0.2s;padding:0.3rem;}
+.row-del:hover{color:var(--accent2);}
+.drag-over-top{border-top:2px solid var(--accent3)!important;}
 
 /* ─── GRID VIEW ─── */
 .grid-wrap{
@@ -792,61 +795,87 @@ function renderContent(){
 
 function renderList(list,area){
   const isManual=S.cfg.sortBy==='manual';
-  const rows=list.map((s,i)=>{const cur=s.id===S.curId;const pc=`pp-${(s.platform||'other').toLowerCase()}`;
-    const sub=[s.artist||'—', s.genre, (s.tags||[]).slice(0,2).join(' · ')].filter(Boolean).join('  ·  ');
+  const rows=list.map((s,i)=>{
+    const cur=s.id===S.curId;
+    const pc=`pp-${(s.platform||'other').toLowerCase()}`;
+    const memo=[s.genre,(s.tags||[]).join(', ')].filter(Boolean).join(' · ');
     return`<div class="song-row ${cur?'playing':''}" data-id="${s.id}"
       ondblclick="playSong('${s.id}')" oncontextmenu="openCtx(event,'${s.id}')"
       ${isManual?'draggable="true"':''}>
-      <div class="rn" style="${isManual?'cursor:grab;font-size:1.1rem;color:var(--text3);':''}">
+      <div class="rn" style="${isManual?'cursor:grab;font-size:1.2rem;color:var(--text3);user-select:none;':''}">
         ${isManual?'⠿':(cur&&S.playing?'▶':i+1)}
       </div>
       <div class="rthumb">${s.thumbnail?`<img src="${esc(s.thumbnail)}" alt="">`:'♪'}</div>
       <div class="rinfo">
         <div class="row-title">${esc(s.title||'제목 없음')}</div>
-        <div class="row-artist">${esc(sub)}</div>
+        <div class="row-artist">${esc(s.artist||'—')}</div>
       </div>
       <div style="padding:0 0.3rem;"><span class="ppill ${pc}">${esc(s.platform||'Other')}</span></div>
+      <div class="row-memo">${esc(memo||'—')}</div>
       <div class="row-dur">${fmt(s.duration)}</div>
       <div class="row-plays">${s.plays||0}</div>
-      <div class="row-like ${s.liked?'liked':''}" onclick="event.stopPropagation();toggleLike('${s.id}')">${s.liked?'♥':'♡'}</div>
-    </div>`;}).join('');
+      <div class="row-del" onclick="event.stopPropagation();deleteSong('${s.id}')">🗑</div>
+    </div>`;
+  }).join('');
+
   area.innerHTML=`<div class="list-header">
-    <div class="ch">${isManual?'⠿':'#'}</div><div class="ch"></div>
-    <div class="ch">제목 / 아티스트 / 메모</div><div class="ch">플랫폼</div>
-    <div class="ch">시간</div><div class="ch">재생</div><div class="ch"></div>
+    <div class="ch">${isManual?'⠿':'#'}</div>
+    <div class="ch"></div>
+    <div class="ch">제목</div>
+    <div class="ch">플랫폼</div>
+    <div class="ch">메모</div>
+    <div class="ch">시간</div>
+    <div class="ch">재생</div>
+    <div class="ch"></div>
   </div>${rows}`;
+
   if(isManual) initDragSort(area);
+}
+
+function deleteSong(id){
+  if(!confirm('이 곡을 삭제할까요?'))return;
+  dbDelete('songs',id);
+  S.songs=S.songs.filter(s=>s.id!==id);
+  S.playlists.forEach(pl=>{pl.songIds=pl.songIds.filter(i=>i!==id);dbPut('playlists',pl);});
+  if(S.curId===id){S.curId=null;S.playing=false;audio.pause();updatePlayerUI();}
+  renderContent();notify('🗑 삭제 완료');
 }
 
 let dragSrc=null;
 function initDragSort(area){
-  const rows=area.querySelectorAll('.song-row');
-  rows.forEach(row=>{
+  const rows=()=>area.querySelectorAll('.song-row');
+  rows().forEach(row=>{
+    // 마우스 드래그
     row.addEventListener('dragstart',e=>{
-      dragSrc=row;e.dataTransfer.effectAllowed='move';
+      dragSrc=row;
+      e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setData('text/plain',row.dataset.id);
       setTimeout(()=>{if(dragSrc)dragSrc.style.opacity='0.4';},0);
     });
     row.addEventListener('dragend',()=>{
       if(dragSrc)dragSrc.style.opacity='';
       dragSrc=null;
-      area.querySelectorAll('.song-row').forEach(r=>r.style.borderTop='');
+      rows().forEach(r=>r.classList.remove('drag-over-top'));
     });
     row.addEventListener('dragover',e=>{
       e.preventDefault();e.dataTransfer.dropEffect='move';
-      area.querySelectorAll('.song-row').forEach(r=>r.style.borderTop='');
-      row.style.borderTop='2px solid var(--accent3)';
+      rows().forEach(r=>r.classList.remove('drag-over-top'));
+      row.classList.add('drag-over-top');
+    });
+    row.addEventListener('dragleave',()=>{
+      row.classList.remove('drag-over-top');
     });
     row.addEventListener('drop',e=>{
       e.preventDefault();
-      area.querySelectorAll('.song-row').forEach(r=>r.style.borderTop='');
+      rows().forEach(r=>r.classList.remove('drag-over-top'));
       if(!dragSrc||dragSrc===row)return;
-      const allRows=[...area.querySelectorAll('.song-row')];
-      const ids=allRows.map(r=>r.dataset.id);
-      const fromIdx=ids.indexOf(dragSrc.dataset.id);
-      const toIdx=ids.indexOf(row.dataset.id);
+      const allIds=[...rows()].map(r=>r.dataset.id);
+      const fromIdx=allIds.indexOf(dragSrc.dataset.id);
+      const toIdx=allIds.indexOf(row.dataset.id);
       if(fromIdx<0||toIdx<0)return;
-      ids.splice(fromIdx,1);ids.splice(toIdx,0,dragSrc.dataset.id);
-      ids.forEach((id,idx)=>{
+      allIds.splice(fromIdx,1);
+      allIds.splice(toIdx,0,dragSrc.dataset.id);
+      allIds.forEach((id,idx)=>{
         const song=S.songs.find(s=>s.id===id);
         if(song){song.order=idx;dbPut('songs',song);}
       });
@@ -1072,6 +1101,7 @@ window.toggleMute=toggleMute;window.setVol=setVol;window.seekTo=seekTo;
 window.ctx_play=ctx_play;window.ctx_edit=ctx_edit;window.ctx_like=ctx_like;
 window.ctx_del=ctx_del;window.ctx_addPl=ctx_addPl;window.addToPl=addToPl;
 window.createPlaylist=createPlaylist;window.renderContent=renderContent;
+window.deleteSong=deleteSong;
 }); // DOMContentLoaded
 </script>
 </body>
