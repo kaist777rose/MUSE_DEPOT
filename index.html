@@ -300,6 +300,19 @@ body{
 .tpill{background:var(--surface2);border:2px solid var(--border2);border-radius:5px;padding:0.2rem 0.5rem;font-size:0.73rem;font-weight:800;display:flex;align-items:center;gap:0.28rem;color:var(--text2);}
 .tremove{background:none;border:none;color:var(--text3);cursor:pointer;padding:0;font-size:0.85rem;line-height:1;font-weight:900;}
 .tremove:hover{color:var(--accent2);}
+.pl-toggle{
+  display:flex;align-items:center;gap:0.35rem;
+  padding:0.32rem 0.65rem;border-radius:6px;cursor:pointer;
+  font-size:0.78rem;font-weight:800;
+  border:2px solid var(--border2);background:var(--surface2);color:var(--text2);
+  transition:all 0.15s;
+  -webkit-tap-highlight-color:rgba(124,58,237,0.2);
+  touch-action:manipulation;user-select:none;
+}
+.pl-toggle:active{transform:scale(0.95);}
+.pl-toggle.selected{border-color:var(--accent3);background:rgba(124,58,237,0.12);color:var(--accent3);}
+.pl-toggle .pl-toggle-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.pl-toggle .pl-toggle-check{font-size:0.7rem;}
 .btn-row{display:flex;gap:0.65rem;margin-top:1.4rem;flex-wrap:wrap;}
 .btn-p{flex:1;background:var(--accent3);border:none;border-radius:8px;padding:0.68rem 1rem;color:#fff;font-weight:900;font-family:'DM Sans',sans-serif;font-size:0.88rem;cursor:pointer;transition:opacity 0.2s;letter-spacing:0.3px;}
 .btn-p:hover{opacity:0.85;}
@@ -474,6 +487,10 @@ body{
       <div class="fg" style="flex:1;"><label class="flabel">장르</label><input class="fi" id="eGenre" placeholder="K-Pop, Lo-fi, EDM..."></div>
     </div>
     <div class="fg"><label class="flabel">앨범</label><input class="fi" id="eAlbum" placeholder="앨범명 (선택)"></div>
+    <div class="fg">
+      <label class="flabel">플레이리스트</label>
+      <div id="ePlaylists" style="display:flex;flex-wrap:wrap;gap:0.4rem;"></div>
+    </div>
     <div class="fg">
       <label class="flabel">메모</label>
       <div class="tags-inp"><input class="fi" id="eTagIn" placeholder="메모 입력 후 Enter / ," style="flex:1;"><button class="btn-s" id="addTagBtn" style="padding:0.4rem 0.75rem;font-size:0.8rem;">추가</button></div>
@@ -1189,7 +1206,40 @@ function openEdit(id){
   document.getElementById('ePlatform').value=s.platform||'Suno';document.getElementById('eYtTitle').value=s.youtubeTitle||'';
   document.getElementById('eYtDesc').value=s.youtubeDescription||'';document.getElementById('eLyrics').value=s.lyrics||'';
   document.getElementById('aiBox').style.display='none';document.getElementById('eThumbName').textContent='';document.getElementById('eThumb').value='';
-  renderEditTags();openModal('editModal');
+  renderEditTags();renderEditPlaylists(id);openModal('editModal');
+}
+function renderEditPlaylists(songId){
+  const container=document.getElementById('ePlaylists');
+  if(!S.playlists.length){
+    container.innerHTML='<span style="font-size:0.76rem;font-weight:700;color:var(--text3);font-style:italic;">플레이리스트 없음 — 사이드바 + 버튼으로 생성</span>';
+    return;
+  }
+  container.innerHTML=S.playlists.map(pl=>{
+    const inPl=pl.songIds.includes(songId);
+    return`<div class="pl-toggle ${inPl?'selected':''}" data-pltoggle="${pl.id}">
+      <span class="pl-toggle-dot" style="background:${pl.color}"></span>
+      <span>${esc(pl.name)}</span>
+      <span class="pl-toggle-check">${inPl?'✓':''}</span>
+    </div>`;
+  }).join('');
+  // 직접 이벤트 바인딩 (iPad Safari 호환)
+  container.querySelectorAll('[data-pltoggle]').forEach(el=>{
+    let plLock=false;
+    function toggle(e){
+      e.preventDefault();e.stopPropagation();
+      if(plLock)return;plLock=true;
+      const plId=el.getAttribute('data-pltoggle');
+      const pl=S.playlists.find(p=>p.id===plId);if(!pl){plLock=false;return;}
+      const idx=pl.songIds.indexOf(songId);
+      if(idx>=0) pl.songIds.splice(idx,1);
+      else pl.songIds.push(songId);
+      dbPut('playlists',pl);
+      renderEditPlaylists(songId);
+      setTimeout(()=>{plLock=false;},300);
+    }
+    el.addEventListener('touchend',toggle,{passive:false});
+    el.addEventListener('click',toggle);
+  });
 }
 function renderEditTags(){document.getElementById('eTagList').innerHTML=editTags.map(t=>`<span class="tpill">${esc(t)}<button class="tremove" data-tremove="${esc(t)}">×</button></span>`).join('');}
 function addEditTag(){const inp=document.getElementById('eTagIn'),vals=inp.value.split(/[,，]/).map(v=>v.trim()).filter(v=>v&&!editTags.includes(v));editTags.push(...vals);inp.value='';renderEditTags();}
